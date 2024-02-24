@@ -22,28 +22,22 @@
 #   - Email Direction
 #   - any applicable custom properties
 
-
+import re
 import pandas as pd
 
 keys=['X-Gmail-Labels', 'Date', 'From', 'To', 'Cc', 'Subject', 'Body', 'X-GM-THRID', 'Message-ID', 'In-Reply-To']
 
-
-# *********TBD ON IF 'DELIVERED-TO' IS IMPORTANT FIELD****************
 
 def extractEmails(emailCol):
     # if cell is empty (NaN/null in pandas), skip cell
     if pd.isnull(emailCol):
         return
 
-    # first split data into email list
-    contacts = emailCol.split(",")
+    # use regex to find all valid email strings within the 
+    validEmails = re.findall(r'[\w.+-]+@[\w-]+\.[\w.-]+', emailCol)
 
-    # loop through contacts and grab emails from in between "<" and ">" separators
-    for i in range(len(contacts)):
-        contacts[i] = contacts[i][contacts[i].find("<") + 1 : contacts[i].find(">")]
-    
     # if multiple emails, should be delimited by ';' character as per hubspot formatting documentation
-    return ";".join(contacts)
+    return ";".join(validEmails)
 
 
 def getDates(dateCol):
@@ -56,12 +50,25 @@ def getDates(dateCol):
     return newDate
 
 
-# NEXT TO DO: NEED TO ASSIGN ACTIVITY TO A SPECIFIC CONTACT
-# steps to take:
-#   - create a new column "Activity-Assigned-To" and assign each instance of email data to all non-insidemaps emails involved
+def getNonDomainEmails(fromData, toData, ccData):
+    combinedData = list()
 
-def getNonDomainEmails():
-    return
+    # convert data into lists and only add non-insidemaps domain emails to final list
+    if 'insidemaps' not in fromData:
+        combinedData.append(fromData.rstrip())
+
+    toData = toData.split(";")
+    for address in toData:
+        if 'insidemaps' not in address:
+            combinedData.append(address.rstrip())
+
+    if not pd.isnull(ccData):
+        ccData = ccData.split(";")
+        for address in ccData:
+            if 'insidemaps' not in address:
+                combinedData.append(address.rstrip())
+
+    return combinedData
 
 def main():
     # read input file for all data
@@ -84,13 +91,20 @@ def main():
     emails['From'] = emails['From'].map(lambda x: extractEmails(x))
     emails['Cc'] = emails['Cc'].map(lambda x: extractEmails(x))
 
-    # *******END CLEANING DATA*******
-
     # *******START ASSIGNING ACTIVITY TO RELEVANT EMAILS/CONTACTS********
 
-    #for index, row in emails.iterrows():
+    # create and add values new column, values being a list of all relevant emails (non insidemaps domain) to later expand on
+    emails['Activity-Assigned-To'] = ""
+    for index, row in emails.iterrows():
+        emails.at[index, 'Activity-Assigned-To'] = getNonDomainEmails(row['From'], row['To'], row['Cc'])
+    
+    # duplicate rows using pd.explode
+    emails = emails.explode('Activity-Assigned-To')
 
-    # *******END ASSIGNING ACTIVITY TO RELEVANT EMAILS/CONTACTS********
+    # drop all rows in which activity-assigned-to is NaN
+    emails = emails[emails['Activity-Assigned-To'].notna()]
+
+    # *******WRITE CLEANED DATA********
 
     # write cleaned and assigned data to output file
     emails.to_csv('./practice-output.csv', index=False)
