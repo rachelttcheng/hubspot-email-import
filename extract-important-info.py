@@ -86,11 +86,12 @@ def main():
     # clean up date to be in format of: day.month.year hh:mm
     emails['Date'] = emails['Date'].map(lambda x: getDates(x))
 
-    # clean up "To", "From", and "CC" fields to only include email, not name
-    # can be multiple "To" and "CC" emails, should only have one "From"
+    # clean up "To", "From", "CC", and "In-Reply-To" fields to only include email, not name
+    # can be multiple "To" and "CC" emails, should only have one "From" and "In-Reply-To"
     emails['To'] = emails['To'].map(lambda x: extractEmails(x))
     emails['From'] = emails['From'].map(lambda x: extractEmails(x))
     emails['Cc'] = emails['Cc'].map(lambda x: extractEmails(x))
+    emails['In-Reply-To'] = emails['In-Reply-To'].map(lambda x: extractEmails(x))
 
     # *******START ASSIGNING ACTIVITY TO RELEVANT EMAILS/CONTACTS********
 
