@@ -24,6 +24,7 @@
 
 import re
 import pandas as pd
+from email.header import Header, decode_header, make_header
 
 keys=['X-Gmail-Labels', 'Date', 'From', 'To', 'Cc', 'Subject', 'Body', 'X-GM-THRID', 'Message-ID', 'In-Reply-To']
 
@@ -98,8 +99,12 @@ def main():
     for index, row in emails.iterrows():
         emails.at[index, 'Activity-Assigned-To'] = getNonDomainEmails(row['From'], row['To'], row['Cc'])
     
-    # duplicate rows using pd.explode
-    emails = emails.explode('Activity-Assigned-To')
+    # duplicate rows based on list within 'Activity-Assigned-To' using pd.explode
+    # emails = emails.explode('Activity-Assigned-To')
+
+    #   bug to fix; check line 168 on spreadsheet
+    # decode email headers if they are encoded
+    emails['Subject'] = emails['Subject'].map(lambda x: str(make_header(decode_header(x))))
 
     # drop all rows in which activity-assigned-to is NaN
     emails = emails[emails['Activity-Assigned-To'].notna()]
