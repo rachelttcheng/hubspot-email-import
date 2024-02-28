@@ -25,6 +25,8 @@
 import re
 import pandas as pd
 from email.header import Header, decode_header, make_header
+from datetime import datetime
+import time
 
 keys=['X-Gmail-Labels', 'Date', 'From', 'To', 'Cc', 'Subject', 'Body', 'X-GM-THRID', 'Message-ID', 'In-Reply-To']
 
@@ -42,13 +44,14 @@ def extractEmails(emailCol):
 
 
 def getDates(dateCol):
-    # clean up date to be in format of: day.month.year hh:mm
-    # current dates come into sheet with format of, e.g. "Fri, 15 Dec 2023 16:40:42 -0800"
-    dateComponents = dateCol.split()
-    newDate = f"{dateComponents[1]}.{dateComponents[2]}.{dateComponents[3]} {dateComponents[4][0:5]}"
+    # current dates come into sheet with format of, e.g. "Fri, 15 Dec 2023 16:40:42 <time offset>"
+    dateArr = dateCol.split()
+
+    # reformat into format "DAY.MON.YEAR"
+    dateStr = f"{dateArr[1]}.{dateArr[2]}.{dateArr[3]} {dateArr[4][0:5]}"
 
     # update date
-    return newDate
+    return dateStr
 
 
 def getNonDomainEmails(fromData, toData, ccData):
@@ -93,6 +96,9 @@ def main():
     emails['Cc'] = emails['Cc'].map(lambda x: extractEmails(x))
     emails['In-Reply-To'] = emails['In-Reply-To'].map(lambda x: extractEmails(x))
 
+    # replace all newline chars with <br> so it gets formatted nicely in import
+    emails['Body'] = emails['Body'].map(lambda x: x.replace("\r\n", "<br>"))
+
     # *******START ASSIGNING ACTIVITY TO RELEVANT EMAILS/CONTACTS********
 
     # create and add values new column, values being a list of all relevant emails (non insidemaps domain) to later expand on
@@ -101,9 +107,8 @@ def main():
         emails.at[index, 'Activity-Assigned-To'] = getNonDomainEmails(row['From'], row['To'], row['Cc'])
     
     # duplicate rows based on list within 'Activity-Assigned-To' using pd.explode
-    # emails = emails.explode('Activity-Assigned-To')
+    emails = emails.explode('Activity-Assigned-To')
 
-    #   bug to fix; check line 168 on spreadsheet
     # decode email headers if they are encoded
     emails['Subject'] = emails['Subject'].map(lambda x: str(make_header(decode_header(x))))
 
