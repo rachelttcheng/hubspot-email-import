@@ -10,9 +10,6 @@
 #   - CC (cc'ed people)
 #   - Subject (email subject)
 #   - Body (email body)
-#   - X-GM-THRID (unique thread identifier, compiles messages together into threads)
-#   - Message-ID (unique id for this particular message)
-#   - In-Reply-To (message ID of email you're responding to)
 
 
 # column fields for hubspot
@@ -28,7 +25,7 @@ from email.header import Header, decode_header, make_header
 from datetime import datetime
 import time
 
-keys=['X-Gmail-Labels', 'Date', 'From', 'To', 'Cc', 'Subject', 'Body', 'X-GM-THRID', 'Message-ID', 'In-Reply-To']
+keys=['X-Gmail-Labels', 'Date', 'From', 'To', 'Cc', 'Subject', 'Body']
 
 
 def extractEmails(emailCol):
