@@ -9,6 +9,15 @@ from hubspot.crm.objects.emails import BatchInputSimplePublicObjectInputForCreat
 
 client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
 
+# edit some stuff here to get emails into proper json format
+# to add a new 
+
+# json object hierarchy:
+#   - emails array that includes list of email objects (contact to associate emails to)
+#       - email objects include two parameters: associations and properties
+#           - associations:
+#           - properties:
+
 emails = [{
     "associations": [{
         "types": [{
@@ -17,8 +26,9 @@ emails = [{
         }],
         "to": {
             "id":"string"
-        }
-    }],
+        }},
+    {"to":{}},{"to":{}},{"to":{}}
+    ],
     "properties": {
         "hs_timestamp":"2019-10-30T03:30:17.883Z",
         "hs_email_text":"Thanks for taking your interest let's find a time to connect",
@@ -32,7 +42,9 @@ emails = [{
         "hs_email_to_firstname":"Brian",
         "hs_email_sender_lastname":"Seller",
         "hs_email_sender_firstname":"Francis"
-    }}]
+    }},
+    {"properties":{}},
+    {"properties":{}}]
 
 batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=emails)
 
