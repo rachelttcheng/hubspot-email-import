@@ -9,41 +9,6 @@ from hubspot.crm.contacts import BatchInputSimplePublicObjectInputForCreate, Api
 
 client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
 
-# ------------------------------------------------------------------------------------------
-#                               companies import starts here
-# ------------------------------------------------------------------------------------------
-
-# do some work here to get companies into correct JSON format
-
-companies = [{
-    "associations":[{
-        "types":[{
-            "associationCategory":"HUBSPOT_DEFINED",
-            "associationTypeId":0
-        }],
-        "to":{"id":"string"}
-    }],
-    "properties":{
-        "city":"Cambridge",
-        "name":"Biglytics",
-        "phone":"(877) 929-0687",
-        "state":"Massachusetts",
-        "domain":"biglytics.net",
-        "industry":"Technology"
-    }}]
-
-batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=companies)
-
-try:
-    api_response = client.crm.companies.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling batch_api->create: %s\n" % e)
-
-# ------------------------------------------------------------------------------------------
-#                               contacts import starts here
-# ------------------------------------------------------------------------------------------
-
 # do some work here to get contacts into correct JSON format
 
 contacts = [{
