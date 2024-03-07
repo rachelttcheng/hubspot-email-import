@@ -25,8 +25,7 @@ emails = [{
         "hs_email_status":"SENT",
         "hs_email_subject":"Let's talk",
         "hubspot_owner_id":"11349275740",
-        "hs_email_to_email":
-        "bh@biglytics.com",
+        "hs_email_to_email":"bh@biglytics.com",
         "hs_email_direction":"EMAIL",
         "hs_email_to_lastname":"Buyer",
         "hs_email_sender_email":"SalesPerson@hubspot.com",
