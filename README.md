@@ -1,3 +1,1 @@
-usage:
-
-python3 extract-important-info.py
+currently refactoring code to support api calls!
