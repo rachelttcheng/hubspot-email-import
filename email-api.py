@@ -14,6 +14,7 @@ client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
 
 CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
 
+# given an email address (unique identifier), make request to hubspot api and get object id
 def getActivityOwnerID(emailAddress):
     # create query using email and relevant headers
     payload = json.dumps({
