@@ -14,7 +14,7 @@ client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
 
 CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
 
-def getActivityOwner(emailAddress):
+def getActivityOwnerID(emailAddress):
     # create query using email and relevant headers
     payload = json.dumps({
         "query": emailAddress
@@ -62,7 +62,7 @@ def main():
                         "associationTypeId": 198    # 198 is email to contact association
                     }],
                     "to": {
-                        "id": getActivityOwner(row['Activity-Assigned-To'])  # id of contact for activity to be associated to
+                        "id": getActivityOwnerID(row['Activity-Assigned-To'])  # id of contact for activity to be associated to
                     }
                 }]
             }
