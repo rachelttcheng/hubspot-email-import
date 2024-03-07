@@ -1,5 +1,5 @@
 # create/update companies before contacts
-# companiesURL = 'https://api.hubapi.com/crm/v3/objects/companies/batch/create'
+# url = 'https://api.hubapi.com/crm/v3/objects/companies/batch/create'
 
 import hubspot
 from pprint import pprint
