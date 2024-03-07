@@ -5,29 +5,33 @@
 
 import hubspot
 import csv
+import requests
+import json
 from pprint import pprint
 from hubspot.crm.contacts import BatchInputSimplePublicObjectInputForCreate, ApiException
 
 client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
 
-# do some work here to get contacts into correct JSON format:
-#
-# contacts = [{
-#     "associations":[{
-#         "types":[{
-#             "associationCategory": "HUBSPOT_DEFINED",
-#             "associationTypeId": 0
-#         }],
-#         "to": {"id":"string"}
-#     }],
-#     "properties": {
-#         "email": "bcooper@biglytics.net",
-#         "phone": "(877) 929-0687",
-#         "company": "Biglytics",
-#         "website": "biglytics.net",
-#         "lastname": "Cooper",
-#         "firstname":"Bryan"
-#     }}]
+COMPANY_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/companies/search"
+
+def getAssociatedCompanyID(companyDomain):
+    # insert company domain into query and create relevant headers
+    payload = json.dumps({
+        "query": companyDomain
+    })
+    headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_TOKEN_HERE'
+    }
+
+    # make request and return comapny id from response
+    response = requests.request("POST", COMPANY_SEARCH_URL, headers=headers, data=payload)
+
+    # handle if no result; still TO DO in regards to if program should terminate or not
+    if not response["total"]:
+        print("Associated company does not exist\n")
+
+    return response["results"][0]["id"]
 
 contacts = []
 
@@ -40,7 +44,7 @@ with open("CONTACTS_FILE.csv", newline='') as contactsFile:
                     "associationTypeId": 1
                 }],
                 "to": {
-                    "id": "INSERT_ID_HERE"  # should be id of company TO DO
+                    "id": getAssociatedCompanyID(row["company domain"])  # should be id of company TO DO
                 }
             }],
             "properties": {
