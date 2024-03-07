@@ -3,7 +3,6 @@
 
 import hubspot
 import csv
-import json
 from pprint import pprint
 from hubspot.crm.companies import BatchInputSimplePublicObjectInputForCreate, ApiException
 
