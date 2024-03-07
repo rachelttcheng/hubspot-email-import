@@ -21,9 +21,7 @@
 
 import re
 import pandas as pd
-from email.header import Header, decode_header, make_header
-from datetime import datetime
-import time
+from email.header import decode_header, make_header
 
 keys=['X-Gmail-Labels', 'Date', 'From', 'To', 'Cc', 'Subject', 'Body']
 
