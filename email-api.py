@@ -12,40 +12,6 @@ from hubspot.crm.objects.emails import BatchInputSimplePublicObjectInputForCreat
 
 client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
 
-# json object hierarchy:
-#   - emails array that includes list of email objects (contact to associate emails to)
-#       - email objects include two parameters: associations and properties
-#           - associations:
-#           - properties:
-#
-# ex:
-# emails = [
-#     {
-#     "associations": [{
-#         "types": [{
-#             "associationCategory":"HUBSPOT_DEFINED",
-#             "associationTypeId":0
-#         }],
-#         "to": {
-#             "id":"string"
-#         }},
-#     ],
-#     "properties": {
-#         "hs_timestamp":"2019-10-30T03:30:17.883Z",
-#         "hs_email_text":"Thanks for taking your interest let's find a time to connect",
-#         "hs_email_status":"SENT",
-#         "hs_email_subject":"Let's talk",
-#         "hubspot_owner_id":"11349275740",
-#         "hs_email_to_email":"bh@biglytics.com",
-#         "hs_email_direction":"EMAIL",
-#         "hs_email_to_lastname":"Buyer",
-#         "hs_email_sender_email":"SalesPerson@hubspot.com",
-#         "hs_email_to_firstname":"Brian",
-#         "hs_email_sender_lastname":"Seller",
-#         "hs_email_sender_firstname":"Francis"
-#     }}
-# ]
-
 CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
 
 def getActivityOwner(emailAddress):
@@ -55,12 +21,13 @@ def getActivityOwner(emailAddress):
     })
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'YOUR_OAUTH_KEY_HERE'
+        'Authorization': 'Bearer YOUR_OAUTH_TOKEN_HERE'
     }
 
     # make request
     response = requests.request("POST", CONTACTS_SEARCH_URL, headers=headers, data=payload)
 
+    # TO DO: likely need to handle what happens if no contact found for associated email
     
     # return ID number of requested email
     return response["results"][0]["id"]
@@ -72,7 +39,7 @@ def main():
         emails = [
             {
                 "properties": {
-                    "hs_timestamp": row["Date"],    # likely needs to be converted to different format
+                    "hs_timestamp": row["Date"],    # TO DO: likely needs to be converted to different format
                     "hs_email_text": row["Body"],
                     "hs_email_subject": row["Subject"],
                     "hs_email_headers": json.dumps(
