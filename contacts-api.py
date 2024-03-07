@@ -29,7 +29,7 @@ def getAssociatedCompanyID(companyDomain):
 
     # handle if no result; still TO DO in regards to if program should terminate or not
     if not response["total"]:
-        print("Associated company does not exist\n")
+        print(f"Company {companyDomain} does not exist, cannot associate to contact\n")
 
     return response["results"][0]["id"]
 

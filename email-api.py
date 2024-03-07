@@ -28,6 +28,8 @@ def getActivityOwnerID(emailAddress):
     response = requests.request("POST", CONTACTS_SEARCH_URL, headers=headers, data=payload)
 
     # TO DO: likely need to handle what happens if no contact found for associated email
+    if not response["total"]:
+        print(f"{emailAddress} does not exist as contact for email to be associated to\n")
     
     # return ID number of requested email
     return response["results"][0]["id"]
