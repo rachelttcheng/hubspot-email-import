@@ -5,8 +5,11 @@ import hubspot
 import csv
 from pprint import pprint
 from hubspot.crm.companies import BatchInputSimplePublicObjectInputForCreate, ApiException
+from get_token import fetchToken
 
-client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
+ACCESS_TOKEN = fetchToken()
+
+client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
 def main():
     # flow company info into json format

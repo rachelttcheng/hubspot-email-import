@@ -9,8 +9,11 @@ import requests
 import json
 from pprint import pprint
 from hubspot.crm.contacts import BatchInputSimplePublicObjectInputForCreate, ApiException
+from get_token import fetchToken
 
-client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
+ACCESS_TOKEN = fetchToken()
+
+client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
 COMPANY_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/companies/search"
 
@@ -21,8 +24,8 @@ def getAssociatedCompanyID(companyDomain):
         "query": companyDomain
     })
     headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_TOKEN_HERE'
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN_HERE'
     }
 
     # make request

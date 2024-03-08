@@ -9,8 +9,11 @@ import json
 import requests
 from pprint import pprint
 from hubspot.crm.objects.emails import BatchInputSimplePublicObjectInputForCreate, ApiException
+from get_token import fetchToken
 
-client = hubspot.Client.create(access_token="YOUR_ACCESS_TOKEN")
+ACCESS_TOKEN = fetchToken()
+
+client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
 CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
 
@@ -22,7 +25,7 @@ def getActivityOwnerID(emailAddress):
     })
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_OAUTH_TOKEN_HERE'
+        'Authorization': 'Bearer ' + ACCESS_TOKEN
     }
 
     # make request
