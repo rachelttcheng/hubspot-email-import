@@ -6,7 +6,6 @@ import csv
 import requests
 import json
 from ratelimiter import checkLimit
-from ratelimit import limits, sleep_and_retry
 from pprint import pprint
 from hubspot.crm.companies import BatchInputSimplePublicObjectInputForCreate, ApiException
 from get_token import fetchToken
