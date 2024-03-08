@@ -21,6 +21,8 @@
 
 import re
 import pandas as pd
+import email.utils
+from datetime import datetime, timezone, timedelta
 from email.header import decode_header, make_header
 
 keys=['X-Gmail-Labels', 'Date', 'From', 'To', 'Cc', 'Subject', 'Body']
@@ -38,15 +40,29 @@ def extractEmails(emailCol):
     return ";".join(validEmails)
 
 
+# needs to be in either Unix timestamp in milliseconds or UTC format
 def getDates(dateCol):
-    # current dates come into sheet with format of, e.g. "Fri, 15 Dec 2023 16:40:42 <time offset>"
-    dateArr = dateCol.split()
+    # current dates come into sheet with RFC 2822 format of, e.g. "Fri, 15 Dec 2023 16:40:42 <time offset>"
+    # convert to unix timestamp in milliseconds
+    dt_tuple = email.utils.parsedate_tz(dateCol)
 
-    # reformat into format "DAY.MON.YEAR"
-    dateStr = f"{dateArr[1]}.{dateArr[2]}.{dateArr[3]} {dateArr[4][0:5]}"
+    # ensure date is in valid format
+    if dt_tuple is None:
+        raise ValueError("Invalid RFC 2822 date format")
 
-    # update date
-    return dateStr
+    # unpack non-timezone date elements and reconstruct into datetime object
+    dt = datetime(*dt_tuple[:6])
+
+    # check for timezone offset and handle
+    if dt_tuple[9] is not None:
+        tz_offset = timedelta(seconds=dt_tuple[9])
+        dt -= tz_offset
+    
+    # convert to UTC
+    dt = dt.replace(tzinfo=timezone.utc)
+    
+    # return unix timestamp in milliseconds, as a string
+    return str(int(dt.timestamp() * 1000))
 
 
 def getNonDomainEmails(fromData, toData, ccData):
@@ -89,7 +105,6 @@ def main():
     emails['To'] = emails['To'].map(lambda x: extractEmails(x))
     emails['From'] = emails['From'].map(lambda x: extractEmails(x))
     emails['Cc'] = emails['Cc'].map(lambda x: extractEmails(x))
-    emails['In-Reply-To'] = emails['In-Reply-To'].map(lambda x: extractEmails(x))
 
     # replace all newline chars with <br> so it gets formatted nicely in import
     emails['Body'] = emails['Body'].map(lambda x: x.replace("\r\n", "<br>"))
