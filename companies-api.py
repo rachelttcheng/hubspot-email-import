@@ -3,13 +3,40 @@
 
 import hubspot
 import csv
+import requests
+import json
+from ratelimiter import checkLimit
+from ratelimit import limits, sleep_and_retry
 from pprint import pprint
 from hubspot.crm.companies import BatchInputSimplePublicObjectInputForCreate, ApiException
 from get_token import fetchToken
 
 ACCESS_TOKEN = fetchToken()
+COMPANY_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/companies/search"
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
+
+# given a company domain (unique identifier), makes request to hubspot api and returns object id within hubspot databse
+def companyExists(companyDomain):
+    # insert company domain into query and create relevant headers
+    payload = json.dumps({"query": companyDomain})
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + ACCESS_TOKEN
+    }
+
+    # make request and get response data, with rate limiting
+    checkLimit()
+    response = requests.request("POST", COMPANY_SEARCH_URL, headers=headers, data=payload)
+    responseData = response.json()
+
+    print(f"total matches for {companyDomain}: {responseData['total']}")
+
+    # check "total" matches
+    if responseData["total"] == 0:
+        return False
+    else:
+        return True
 
 def main():
     # flow company info into json format
@@ -21,7 +48,7 @@ def main():
                     "domain": row["company domain"]
                 }
             }
-            for row in csv.DictReader(contactsFile)
+            for row in csv.DictReader(contactsFile) if not companyExists(row["company domain"])
         ]
 
     batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=companies)
