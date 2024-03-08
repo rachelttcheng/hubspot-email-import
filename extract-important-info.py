@@ -106,9 +106,6 @@ def main():
     emails['From'] = emails['From'].map(lambda x: extractEmails(x))
     emails['Cc'] = emails['Cc'].map(lambda x: extractEmails(x))
 
-    # replace all newline chars with <br> so it gets formatted nicely in import
-    emails['Body'] = emails['Body'].map(lambda x: x.replace("\r\n", "<br>"))
-
     # *******START ASSIGNING ACTIVITY TO RELEVANT EMAILS/CONTACTS********
 
     # create and add values new column, values being a list of all relevant emails (non insidemaps domain) to later expand on
