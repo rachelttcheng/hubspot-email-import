@@ -16,7 +16,7 @@ COMPANY_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/companies/search"
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
-# given a company domain (unique identifier), makes request to hubspot api and returns object id within hubspot databse
+# given company domain, checks if it already exists within database to prevent duplicates
 def companyExists(companyDomain):
     # insert company domain into query and create relevant headers
     payload = json.dumps({"query": companyDomain})
