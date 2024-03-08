@@ -4,3 +4,5 @@ requests
 https://github.com/PS1607/mbox-to-json
 # for making api calls to hubspot
 hubspot-api-client
+# for rate limiting
+ratelimit
