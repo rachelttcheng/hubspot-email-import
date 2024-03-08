@@ -14,7 +14,7 @@ client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 def main():
     # flow company info into json format
     companies = []
-    with open("CONTACTS_FILE.csv", newline='') as contactsFile:
+    with open("sample-contacts.csv", newline='') as contactsFile:
         companies = [
             {
                 "properties": {
