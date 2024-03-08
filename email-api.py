@@ -7,15 +7,15 @@ import hubspot
 import csv
 import json
 import requests
+from ratelimiter import checkLimit
 from pprint import pprint
 from hubspot.crm.objects.emails import BatchInputSimplePublicObjectInputForCreate, ApiException
 from get_token import fetchToken
 
 ACCESS_TOKEN = fetchToken()
+CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
-
-CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
 
 # given an email address (unique identifier), make request to hubspot api and get object id
 def getActivityOwnerID(emailAddress):
@@ -29,23 +29,26 @@ def getActivityOwnerID(emailAddress):
     }
 
     # make request
+    checkLimit()
     response = requests.request("POST", CONTACTS_SEARCH_URL, headers=headers, data=payload)
+    responseData = response.json()
 
     # TO DO: likely need to handle what happens if no contact found for associated email
-    if not response["total"]:
+    if responseData["total"] == 0:
         print(f"{emailAddress} does not exist as contact for email to be associated to\n")
     
     # return ID number of requested email
-    return response["results"][0]["id"]
+    return responseData["results"][0]["id"]
 
 def main():
     # flow csv data into nested json format
     emails = []
-    with open("EMAIL_FILE.csv", newline='') as emailsFile:
+    with open("practice-output.csv", newline='') as emailsFile:
         emails = [
             {
                 "properties": {
                     "hs_timestamp": row["Date"],    # TO DO: likely needs to be converted to different format
+                    "hs_email_direction": "INCOMING_EMAIL" if row["X-Gmail-Labels"] == "Incoming" else "FORWARDED_EMAIL",
                     "hs_email_text": row["Body"],
                     "hs_email_subject": row["Subject"],
                     "hs_email_headers": json.dumps(
@@ -54,10 +57,10 @@ def main():
                                 "email": row["From"]
                             },
                             "to": [
-                                {"email": recipient} for recipient in row["To"]
+                                {"email": recipient} for recipient in row["To"].split(";")
                             ],
                             "cc": [
-                                {"email": recipient} for recipient in row["Cc"]
+                                {"email": recipient} for recipient in row["Cc"].split(";")
                             ]
                         }
                     )
