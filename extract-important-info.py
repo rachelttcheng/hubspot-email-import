@@ -1,6 +1,8 @@
 # use csv files instead of json to reduce memory bloat; we're reading in non-nested tabular values
 
-# requires https://github.com/PS1607/mbox-to-json to help conversion from mbox to json
+# requires https://github.com/PS1607/mbox-to-json to help conversion from mbox to csv
+# run command:  % mbox-to-json <filename/path> -c
+#   - c flag is to convert to csv instead of json
 
 # fields we want to import:
 #   - X-Gmail-Labels (tells us if message is categorized as Sent)
@@ -66,28 +68,30 @@ def getDates(dateCol):
 
 
 def getNonDomainEmails(fromData, toData, ccData):
-    combinedData = list()
+    combinedData = set()
 
     # convert data into lists and only add non-insidemaps domain emails to final list
     if 'insidemaps' not in fromData:
-        combinedData.append(fromData.rstrip())
+        combinedData.add(fromData.rstrip())
 
     toData = toData.split(";")
     for address in toData:
         if 'insidemaps' not in address:
-            combinedData.append(address.rstrip())
+            combinedData.add(address.rstrip())
 
     if not pd.isnull(ccData):
         ccData = ccData.split(";")
         for address in ccData:
             if 'insidemaps' not in address:
-                combinedData.append(address.rstrip())
+                combinedData.add(address.rstrip())
 
-    return combinedData
+    return list(combinedData)
 
 def main():
     # read input file for all data
-    emails = pd.read_csv('./practice-mail.csv')
+    inputFilename = 'genesis-capital.csv'
+    outputFilename = inputFilename.split('.')[0] + "-output.csv"
+    emails = pd.read_csv('./data/' + inputFilename)
 
     # *******BEGIN CLEANING DATA*******
 
@@ -125,7 +129,7 @@ def main():
     # *******WRITE CLEANED DATA********
 
     # write cleaned and assigned data to output file
-    emails.to_csv('./practice-output.csv', index=False)
+    emails.to_csv('./' + outputFilename, index=False)
 
 if __name__ == "__main__":
     main()
