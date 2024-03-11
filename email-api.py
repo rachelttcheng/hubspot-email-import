@@ -36,18 +36,40 @@ def getActivityOwnerID(emailAddress):
     # TO DO: likely need to handle what happens if no contact found for associated email
     if responseData["total"] == 0:
         print(f"{emailAddress} does not exist as contact for email to be associated to\n")
+        return emailAddress
     
     # return ID number of requested email
     return responseData["results"][0]["id"]
 
 def main():
+    outputFilename = "genesis-capital-output.csv"
+
+    # open a potential "error" file for if an activity-associated email DNE
+    errorFilename = outputFilename.split('.')[0] + "-not-uploaded.csv"
+
     # flow csv data into nested json format
     emails = []
-    with open("practice-output.csv", newline='') as emailsFile:
-        emails = [
-            {
+    with open("./" + outputFilename, newline='') as emailsFile:
+        emails = list()
+        emailReader = csv.DictReader(emailsFile)
+
+        # set up error file by adding "issues" field name
+        errorFieldnames = ['issue']
+        errorFieldnames.extend(emailReader.fieldnames)
+        errorWriter = csv.DictWriter(open(errorFilename, 'w'), fieldnames=errorFieldnames)
+        errorWriter.writeheader()
+
+        for row in emailReader:
+            activityOwner = getActivityOwnerID(row['Activity-Assigned-To'])
+
+            if not activityOwner.isnumeric():
+                row['issue'] = f"{activityOwner} not in contacts"
+                errorWriter.writerow(row)
+                continue
+
+            emailInstance = {
                 "properties": {
-                    "hs_timestamp": row["Date"],    # TO DO: likely needs to be converted to different format
+                    "hs_timestamp": row["Date"],
                     "hs_email_direction": "INCOMING_EMAIL" if row["X-Gmail-Labels"] == "Incoming" else "FORWARDED_EMAIL",
                     "hs_email_text": row["Body"],
                     "hs_email_subject": row["Subject"],
@@ -71,13 +93,14 @@ def main():
                         "associationTypeId": 198    # 198 is email to contact association
                     }],
                     "to": {
-                        "id": getActivityOwnerID(row['Activity-Assigned-To'])  # id of contact for activity to be associated to
+                        "id": activityOwner  # id of contact for activity to be associated to
                     }
                 }]
             }
-            for row in csv.DictReader(emailsFile)
-        ]
 
+            emails.append(emailInstance)
+
+    # create email batch input object and attempt to call api
     batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=emails)
 
     try:
