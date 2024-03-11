@@ -1,6 +1,7 @@
 # simple rate limiter for api calls
-# while hubspot says they're a 10 calls/sec rate limit, it isn't consistent and can hit limit even with rate of 5/sec,
-# so 3 calls/sec is a safe bet
+# while hubspot says they're a 10 calls/sec rate limit, it isn't consistent
+# so <=5 calls/sec is a safe bet, adjust as needed
+# typically 4 for companies, 3 for contacts and email
 
 from ratelimit import limits, sleep_and_retry
 
