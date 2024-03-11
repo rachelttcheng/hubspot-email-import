@@ -33,15 +33,15 @@ def getActivityOwnerID(emailAddress):
     response = requests.request("POST", CONTACTS_SEARCH_URL, headers=headers, data=payload)
     responseData = response.json()
 
-    # TO DO: likely need to handle what happens if no contact found for associated email
+    # if no id found, simply return email address
     if responseData["total"] == 0:
-        print(f"{emailAddress} does not exist as contact for email to be associated to\n")
         return emailAddress
     
-    # return ID number of requested email
+    # else return found ID number of requested email
     return responseData["results"][0]["id"]
 
 def main():
+    # should eventually change to be specified on command line
     outputFilename = "genesis-capital-output.csv"
 
     # open a potential "error" file for if an activity-associated email DNE
@@ -60,8 +60,10 @@ def main():
         errorWriter.writeheader()
 
         for row in emailReader:
+            # grab id number of activity owner, or get email returned
             activityOwner = getActivityOwnerID(row['Activity-Assigned-To'])
 
+            # if no id number found for email within database, it DNE and should be written to error file
             if not activityOwner.isnumeric():
                 row['issue'] = f"{activityOwner} not in contacts"
                 errorWriter.writerow(row)
