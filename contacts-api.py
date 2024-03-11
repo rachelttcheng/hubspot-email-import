@@ -1,9 +1,13 @@
 # import contacts (after companies)
 # all contacts need to be in JSON format, associated to company object
 
-# url = 'https://api.hubapi.com/crm/v3/objects/contacts/batch/create'
+# run on command line as such:
+# % python3 contacts-api.py <contacts filename/path>
+# e.g.
+# % python3 email-api.py ./data/sample-contacts.csv
 
 import hubspot
+import sys
 import csv
 import requests
 import json
@@ -55,8 +59,6 @@ def contactAlreadyExists(contactEmail):
     response = requests.request("POST", CONTACTS_SEARCH_URL, headers=headers, data=payload)
     responseData = response.json()
 
-    print(f"contact {contactEmail} has {responseData['total']} matches")
-
     # check if any matches exist and return accordingly
     if responseData["total"] == 0:
         return False
@@ -64,9 +66,15 @@ def contactAlreadyExists(contactEmail):
         return True
 
 def main():
+    # ensure input file specified on command line
+    if len(sys.argv) < 2:
+        raise AssertionError("No contact file specified")
+
+    contactsFileName = sys.argv[2]
+
     # flow csv data into nested json format
     contacts = []
-    with open("sample-contacts.csv", newline='') as contactsFile:
+    with open(contactsFileName, newline='') as contactsFile:
         contacts = [
             {
                 "associations": [{
@@ -95,7 +103,6 @@ def main():
         api_response = client.crm.contacts.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
         pprint(api_response)
     except ApiException as e:
-
         print("Exception when calling batch_api->create: %s\n" % e)
 
 if __name__ == "__main__":

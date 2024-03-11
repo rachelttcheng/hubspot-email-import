@@ -1,7 +1,13 @@
 # create/update companies before contacts
 # url = 'https://api.hubapi.com/crm/v3/objects/companies/batch/create'
 
+# run on command line as such:
+# % python3 companies-api.py <contacts filename/path>
+# e.g.
+# % python3 companies-api.py ./data/sample-contacts.csv
+
 import hubspot
+import sys
 import csv
 import requests
 import json
@@ -29,8 +35,6 @@ def companyExists(companyDomain):
     response = requests.request("POST", COMPANY_SEARCH_URL, headers=headers, data=payload)
     responseData = response.json()
 
-    print(f"total matches for {companyDomain}: {responseData['total']}")
-
     # check "total" matches
     if responseData["total"] == 0:
         return False
@@ -38,9 +42,15 @@ def companyExists(companyDomain):
         return True
 
 def main():
+    # ensure input file specified on command line
+    if len(sys.argv) < 2:
+        raise AssertionError("No contact file specified")
+    
+    contactsFileName = sys.argv[2]
+
     # flow company info into json format
     companies = []
-    with open("sample-contacts.csv", newline='') as contactsFile:
+    with open(contactsFileName, newline='') as contactsFile:
         companies = [
             {
                 "properties": {

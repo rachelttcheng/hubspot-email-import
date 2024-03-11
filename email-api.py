@@ -1,9 +1,13 @@
 # python program to execute to import emails
 # ***ENSURE THAT CONTACTS HAVE BEEN IMPORTED BEFORE CALLING THIS PROGRAM
 
-# url = 'https://api.hubapi.com/crm/v3/objects/emails'
+# run on command line as such:
+# % python3 email-api.py <cleaned csv data filename/path>
+# e.g.
+# % python3 email-api.py practice-mail-output.csv
 
 import hubspot
+import sys
 import csv
 import json
 import requests
@@ -41,15 +45,19 @@ def getActivityOwnerID(emailAddress):
     return responseData["results"][0]["id"]
 
 def main():
-    # should eventually change to be specified on command line
-    outputFilename = "genesis-capital-output.csv"
+    # ensure input file specified on command line
+    if len(sys.argv) < 2:
+        raise AssertionError("No email data file specified")
+
+    # grab cleaned data from command line
+    cleanedDataFileName = sys.argv[2]
 
     # open a potential "error" file for if an activity-associated email DNE
-    errorFilename = outputFilename.split('.')[0] + "-not-uploaded.csv"
+    errorFilename = cleanedDataFileName.split('.')[0] + "-not-uploaded.csv"
 
     # flow csv data into nested json format
     emails = []
-    with open("./" + outputFilename, newline='') as emailsFile:
+    with open("./" + cleanedDataFileName, newline='') as emailsFile:
         emails = list()
         emailReader = csv.DictReader(emailsFile)
 
