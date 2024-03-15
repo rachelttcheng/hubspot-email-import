@@ -7,7 +7,6 @@
 # % python3 companies-api.py ./data/sample-contacts.csv
 
 import hubspot
-import sys
 import csv
 import requests
 import json
