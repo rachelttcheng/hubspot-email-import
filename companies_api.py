@@ -40,10 +40,10 @@ def companyExists(companyDomain):
     else:
         return True
 
-def callCompaniesAPI(contactsFilepath):
+def callCompaniesAPI(contactsFilename):
     # flow company info into json format
     companies = []
-    with open(contactsFilepath, newline='') as contactsFile:
+    with open(contactsFilename, newline='') as contactsFile:
         companies = [
             {
                 "properties": {

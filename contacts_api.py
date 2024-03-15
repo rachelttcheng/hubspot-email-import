@@ -64,10 +64,10 @@ def contactAlreadyExists(contactEmail):
     else:
         return True
 
-def callContactsAPI(contactsFilepath):
+def callContactsAPI(contactsFilename):
     # flow csv data into nested json format
     contacts = []
-    with open(contactsFilepath, newline='') as contactsFile:
+    with open(contactsFilename, newline='') as contactsFile:
         contacts = [
             {
                 "associations": [{
