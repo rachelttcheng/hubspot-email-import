@@ -1,39 +1,41 @@
 # program that combines functionality of all subprograms here:
 #
-#   1. api call to create companies
-#   2. api call to create contacts
-#   3. convert mbox file to csv (if mbox file extension)
-#   4. clean up email data
-#   5. api call to create emails
+#   1. convert mbox file to csv (if mbox file extension) - ASSUME MBOX FOR NOW
+#   2. clean up email data
+#   3. api call to create emails
 #
 # program is called from command line as such:
-#   % python3 import_emails.py <contact file name/path> <email file name/path>
+#   % python3 import_emails.py <email file name>
 
 # maybe look into argparse, https://docs.python.org/3/library/argparse.html
 
 import sys
+import subprocess
+from filter_emails import cleanEmailData
+from email_api import callEmailAPI
 
 def main():
-    # get contacts and emails files from command line
-    if len(sys.argv) < 4:   # ensure enough arguments are passed
+    # get emails file from command line
+    if len(sys.argv) < 3:   # ensure enough arguments are passed
         raise AssertionError("Not enough arguments specified")
 
-    contactsFilename = sys.argv[2]
-    emailsFilename = sys.argv[3]
+    rawEmailFilename = sys.argv[2]
 
-    # determine file type of emails file and use mbox-to-json if necessary
+    # 1. convert emails from mbox to json using mbox-to-json package
+    subprocess.run("mbox-to-json", rawEmailFilename, "-c")
 
+    # get name of outputted csv file for input to second step
+    csvEmailFilename = rawEmailFilename.split(".")[0] + ".csv"
 
-    # api call to create companies
+    # 2. clean up email data
+    # generate output file name, for input to third step
+    cleanedDataFilename = csvEmailFilename.split('.')[0] + "-output.csv"
 
+    cleanEmailData(csvEmailFilename, cleanedDataFilename)
 
-    # api call to create contacts
+    # 3. api call to create emails
+    callEmailAPI(cleanedDataFilename)
 
-
-    # clean up email data
-
-
-    # api call to create emails
 
 if __name__ == "__main__":
     main()
