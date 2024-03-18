@@ -93,8 +93,9 @@ def cleanEmailData(inputFilename, outputFilename):
 
     # *******BEGIN CLEANING DATA*******
 
-    # filter data only from specified key fields; make sure headers aren't case sensitive by lowercasing them
+    # filter data only from specified key fields; make sure headers aren't case sensitive by lowercasing them and remove duplicates
     emails.columns = emails.columns.str.lower()
+    emails = emails.loc[:,~emails.columns.duplicated()]
     emails = emails[keys]
 
     # clean up "X-Gmail-Labels" to include only 'Incoming' (from 'Inbox') or 'Outgoing' (from 'Sent')
