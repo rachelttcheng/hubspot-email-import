@@ -99,7 +99,7 @@ def cleanEmailData(inputFilename, outputFilename):
     emails = emails[keys]
 
     # clean up "X-Gmail-Labels" to include only 'Incoming' (from 'Inbox') or 'Outgoing' (from 'Sent')
-    emails['x-gmail-labels'] = emails['x-gmail-labels'].map(lambda x: 'Incoming' if 'Inbox' in x else 'Outgoing')
+    emails['x-gmail-labels'] = emails['x-gmail-labels'].map(lambda x: 'Outgoing' if 'Sent' in x else 'Incoming')
 
     # clean up date to be in format of: day.month.year hh:mm
     emails['date'] = emails['date'].map(lambda x: getDates(x))
@@ -116,15 +116,12 @@ def cleanEmailData(inputFilename, outputFilename):
     emails['activity-assigned-to'] = ""
     for index, row in emails.iterrows():
         emails.at[index, 'activity-assigned-to'] = getNonDomainEmails(row['from'], row['to'], row['cc'])
-    
-    # duplicate rows based on list within 'Activity-Assigned-To' using pd.explode
-    emails = emails.explode('activity-assigned-to')
-
-    # decode email headers if they are encoded
-    emails['subject'] = emails['subject'].map(lambda x: str(make_header(decode_header(x))))
 
     # drop all rows in which activity-assigned-to is NaN
     emails = emails[emails['activity-assigned-to'].notna()]
+    
+    # decode email headers if they are encoded
+    emails['subject'] = emails['subject'].map(lambda x: str(make_header(decode_header(x))))
 
     # *******WRITE CLEANED DATA********
 

@@ -14,6 +14,7 @@ from ratelimiter import checkLimit
 from pprint import pprint
 from hubspot.crm.objects.emails import BatchInputSimplePublicObjectInputForCreate, ApiException
 from get_token import fetchToken
+from ast import literal_eval
 
 ACCESS_TOKEN = fetchToken()
 CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
@@ -60,15 +61,30 @@ def callEmailAPI(cleanedDataFilename):
         errorWriter.writeheader()
 
         for row in emailReader:
-            # grab id number of activity owner, or get email returned
-            activityOwner = getActivityOwnerID(row['activity-assigned-to'])
+            # create list of associations (email to contact) to put into instance of email to be sent to db
+            associations = list()
+            for person in literal_eval(row['activity-assigned-to']):
+                # grab id number of activity owner, or get email returned
+                activityOwner = getActivityOwnerID(person)
 
-            # if no id number found for email within database, it DNE and should be written to error file
-            if not activityOwner.isnumeric():
-                row['issue'] = f"{activityOwner} not in contacts"
-                errorWriter.writerow(row)
-                continue
+                # if no id number found for email within database, it DNE and should be written to error file
+                if not activityOwner.isnumeric():
+                    row['issue'] = f"{activityOwner} not in contacts"
+                    errorWriter.writerow(row)
+                    continue
+                
+                # id exists: include as instance in associations list
+                associations.append({
+                    "types": [{
+                        "associationCategory": "HUBSPOT_DEFINED",
+                        "associationTypeId": 198    # email to contact association id as assigned by hubspot
+                    }],
+                    "to": {
+                        "id": activityOwner
+                    }
+                })
 
+            # create email instance with relative properties from row
             emailInstance = {
                 "properties": {
                     "hs_timestamp": row["date"],
@@ -89,15 +105,7 @@ def callEmailAPI(cleanedDataFilename):
                         }
                     )
                 },
-                "associations": [{
-                    "types": [{
-                        "associationCategory": "HUBSPOT_DEFINED",
-                        "associationTypeId": 198    # 198 is email to contact association
-                    }],
-                    "to": {
-                        "id": activityOwner  # id of contact for activity to be associated to
-                    }
-                }]
+                "associations": associations
             }
 
             emails.append(emailInstance)
