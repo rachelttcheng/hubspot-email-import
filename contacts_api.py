@@ -95,5 +95,6 @@ def callContactsAPI(contactsFilename):
     try:
         api_response = client.crm.contacts.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
         pprint(api_response)
+        print("\nContacts created successfully.\n")
     except ApiException as e:
         print("Exception when calling batch_api->create: %s\n" % e)
