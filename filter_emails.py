@@ -27,7 +27,7 @@ import email.utils
 from datetime import datetime, timezone, timedelta
 from email.header import decode_header, make_header
 
-keys=['X-Gmail-Labels', 'Date', 'From', 'To', 'Cc', 'Subject', 'Body']
+keys=['x-gmail-labels', 'date', 'from', 'to', 'cc', 'subject', 'body']
 
 
 def extractEmails(emailCol):
@@ -93,36 +93,37 @@ def cleanEmailData(inputFilename, outputFilename):
 
     # *******BEGIN CLEANING DATA*******
 
-    # filter data only from specified key fields
+    # filter data only from specified key fields; make sure headers aren't case sensitive by lowercasing them
+    emails.columns = emails.columns.str.lower()
     emails = emails[keys]
 
     # clean up "X-Gmail-Labels" to include only 'Incoming' (from 'Inbox') or 'Outgoing' (from 'Sent')
-    emails['X-Gmail-Labels'] = emails['X-Gmail-Labels'].map(lambda x: 'Incoming' if 'Inbox' in x else 'Outgoing')
+    emails['x-gmail-labels'] = emails['x-gmail-labels'].map(lambda x: 'Incoming' if 'Inbox' in x else 'Outgoing')
 
     # clean up date to be in format of: day.month.year hh:mm
-    emails['Date'] = emails['Date'].map(lambda x: getDates(x))
+    emails['date'] = emails['date'].map(lambda x: getDates(x))
 
     # clean up "To", "From", "CC", and "In-Reply-To" fields to only include email, not name
     # can be multiple "To" and "CC" emails, should only have one "From" and "In-Reply-To"
-    emails['To'] = emails['To'].map(lambda x: extractEmails(x))
-    emails['From'] = emails['From'].map(lambda x: extractEmails(x))
-    emails['Cc'] = emails['Cc'].map(lambda x: extractEmails(x))
+    emails['to'] = emails['to'].map(lambda x: extractEmails(x))
+    emails['from'] = emails['from'].map(lambda x: extractEmails(x))
+    emails['cc'] = emails['cc'].map(lambda x: extractEmails(x))
 
     # *******START ASSIGNING ACTIVITY TO RELEVANT EMAILS/CONTACTS********
 
     # create and add values new column, values being a list of all relevant emails (non insidemaps domain) to later expand on
-    emails['Activity-Assigned-To'] = ""
+    emails['activity-assigned-to'] = ""
     for index, row in emails.iterrows():
-        emails.at[index, 'Activity-Assigned-To'] = getNonDomainEmails(row['From'], row['To'], row['Cc'])
+        emails.at[index, 'activity-assigned-to'] = getNonDomainEmails(row['from'], row['to'], row['cc'])
     
     # duplicate rows based on list within 'Activity-Assigned-To' using pd.explode
-    emails = emails.explode('Activity-Assigned-To')
+    emails = emails.explode('activity-assigned-to')
 
     # decode email headers if they are encoded
-    emails['Subject'] = emails['Subject'].map(lambda x: str(make_header(decode_header(x))))
+    emails['subject'] = emails['subject'].map(lambda x: str(make_header(decode_header(x))))
 
     # drop all rows in which activity-assigned-to is NaN
-    emails = emails[emails['Activity-Assigned-To'].notna()]
+    emails = emails[emails['activity-assigned-to'].notna()]
 
     # *******WRITE CLEANED DATA********
 

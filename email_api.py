@@ -61,7 +61,7 @@ def callEmailAPI(cleanedDataFilename):
 
         for row in emailReader:
             # grab id number of activity owner, or get email returned
-            activityOwner = getActivityOwnerID(row['Activity-Assigned-To'])
+            activityOwner = getActivityOwnerID(row['activity-assigned-to'])
 
             # if no id number found for email within database, it DNE and should be written to error file
             if not activityOwner.isnumeric():
@@ -71,20 +71,20 @@ def callEmailAPI(cleanedDataFilename):
 
             emailInstance = {
                 "properties": {
-                    "hs_timestamp": row["Date"],
-                    "hs_email_direction": "INCOMING_EMAIL" if row["X-Gmail-Labels"] == "Incoming" else "FORWARDED_EMAIL",
-                    "hs_email_text": row["Body"],
-                    "hs_email_subject": row["Subject"],
+                    "hs_timestamp": row["date"],
+                    "hs_email_direction": "INCOMING_EMAIL" if row["x-gmail-labels"] == "Incoming" else "FORWARDED_EMAIL",
+                    "hs_email_text": row["body"],
+                    "hs_email_subject": row["subject"],
                     "hs_email_headers": json.dumps(
                         {
                             "from": {
-                                "email": row["From"]
+                                "email": row["from"]
                             },
                             "to": [
-                                {"email": recipient} for recipient in row["To"].split(";")
+                                {"email": recipient} for recipient in row["to"].split(";")
                             ],
                             "cc": [
-                                {"email": recipient} for recipient in row["Cc"].split(";")
+                                {"email": recipient} for recipient in row["cc"].split(";")
                             ]
                         }
                     )
@@ -108,5 +108,6 @@ def callEmailAPI(cleanedDataFilename):
     try:
         api_response = client.crm.objects.emails.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
         pprint(api_response)
+        print(f"\nEmails imported to database. Any emails not able to be imported due to contact not existing have been written to {errorFilename}\n")
     except ApiException as e:
         print("Exception when calling batch_api->create: %s\n" % e)

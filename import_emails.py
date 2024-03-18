@@ -16,22 +16,25 @@ from email_api import callEmailAPI
 
 def main():
     # get emails file from command line
-    if len(sys.argv) < 3:   # ensure enough arguments are passed
+    if len(sys.argv) < 2:   # ensure enough arguments are passed
         raise AssertionError("Not enough arguments specified")
 
-    rawEmailFilename = sys.argv[2]
+    rawEmailFilename = sys.argv[1]
 
     # 1. convert emails from mbox to json using mbox-to-json package
-    subprocess.run("mbox-to-json", rawEmailFilename, "-c")
+    subprocess.run(["mbox-to-json", rawEmailFilename, "-c"])
 
     # get name of outputted csv file for input to second step
     csvEmailFilename = rawEmailFilename.split(".")[0] + ".csv"
 
+    print(f"\nMbox file converted to csv file type: {csvEmailFilename} - ready for data cleanup...\n")
+
     # 2. clean up email data
     # generate output file name, for input to third step
     cleanedDataFilename = csvEmailFilename.split('.')[0] + "-output.csv"
-
     cleanEmailData(csvEmailFilename, cleanedDataFilename)
+
+    print("\nEmail data cleaned, ready to be written to database...\n")
 
     # 3. api call to create emails
     callEmailAPI(cleanedDataFilename)
