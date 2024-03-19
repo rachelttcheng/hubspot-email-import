@@ -1,0 +1,11 @@
+# 
+BEGIN{chunk=0;filesize=0;}
+    /^From /{
+    if(filesize>=100000000){#file size per chunk in byte
+        close("gabe_emails_" chunk ".mbox");
+        filesize=0;
+        chunk++;
+    }
+  }
+  {filesize+=length()}
+  {print > ("gabe_emails_" chunk ".mbox")}

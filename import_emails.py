@@ -11,6 +11,7 @@
 
 import sys
 import subprocess
+import os
 from filter_emails import cleanEmailData
 from email_api import callEmailAPI
 
@@ -38,6 +39,10 @@ def main():
 
     # 3. api call to create emails
     callEmailAPI(cleanedDataFilename)
+
+    # delete extraneous intermediate files
+    os.remove(csvEmailFilename)
+    os.remove(cleanedDataFilename)
 
 
 if __name__ == "__main__":
