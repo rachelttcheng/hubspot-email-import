@@ -1,11 +1,11 @@
-# 
+# replace YOUR FILE PREFIX to desired prefix before running
 BEGIN{chunk=0;filesize=0;}
     /^From /{
     if(filesize>=100000000){#file size per chunk in byte
-        close("gabe_emails_" chunk ".mbox");
+        close("YOUR FILE PREFIX" chunk ".mbox");
         filesize=0;
         chunk++;
     }
   }
   {filesize+=length()}
-  {print > ("gabe_emails_" chunk ".mbox")}
+  {print > ("YOUR FILE PREFIX" chunk ".mbox")}
