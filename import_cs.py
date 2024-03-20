@@ -13,6 +13,8 @@ from companies_api import callCompaniesAPI
 from contacts_api import callContactsAPI
 
 def main():
+    print("\nStarting program...\n")
+
     # get contacts file from command line
     if len(sys.argv) < 2:   # ensure enough arguments are passed
         print(sys.argv)
@@ -21,13 +23,17 @@ def main():
     contactsFilename = sys.argv[1]
 
     # api call to create companies
+    print("Starting companies API call...\n")
     callCompaniesAPI(contactsFilename)
 
     # wait between api calls so that when contacts are created, ensure their companies already exist in the db
     print("Waiting 10 seconds for companies to populate database before importing contacts...\n")
-    time.sleep(10)
+    for i in range(10, 0, -1):
+        print(i)
+        time.sleep(1)
 
     # api call to create contacts
+    print("Starting contacts API call...\n")
     callContactsAPI(contactsFilename)
 
 

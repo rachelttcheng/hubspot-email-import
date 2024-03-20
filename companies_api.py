@@ -63,7 +63,7 @@ def callCompaniesAPI(contactsFilename):
                         api_response = client.crm.companies.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
                         total_companies_pushed += len(api_response.results)
                         # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
-                        print("\nCompany batch pushed successfully.\n")
+                        print(f"Company batch of size {len(api_response.results)} pushed successfully.")
                     except ApiException as e:
                         print("Exception when calling batch_api->create: %s\n" % e)
 
@@ -78,8 +78,8 @@ def callCompaniesAPI(contactsFilename):
                 api_response = client.crm.companies.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
                 total_companies_pushed += len(api_response.results)
                 # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
-                print("\nCompany batch pushed successfully.\n")
+                print(f"Company batch of size {len(api_response.results)} pushed successfully.\n")
             except ApiException as e:
                 print("Exception when calling batch_api->create: %s\n" % e)
 
-        print(f"\n{total_companies_pushed} companies pushed successfully.\n")
+        print(f"\n{total_companies_pushed} total companies pushed successfully.\n")
