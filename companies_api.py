@@ -9,50 +9,54 @@
 import hubspot
 import csv
 import requests
-import json
-from ratelimiter import checkLimit
 from pprint import pprint
 from hubspot.crm.companies import BatchInputSimplePublicObjectInputForCreate, ApiException
 from get_token import fetchToken
 
 ACCESS_TOKEN = fetchToken()
-COMPANY_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/companies/search"
+COMPANIES_GET_URL = "https://api.hubapi.com/crm/v3/objects/companies"
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
+existing_companies_in_db = set()
 
-# given company domain, checks if it already exists within database to prevent duplicates
-def companyExists(companyDomain):
-    # insert company domain into query and create relevant headers
-    payload = json.dumps({"query": companyDomain})
+# make api call to get list of existing companies
+def getCompanies():
+    global existing_companies_in_db
+    params =  {"properties": ["domain"]}
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + ACCESS_TOKEN
     }
 
-    # make request and get response data, with rate limiting
-    checkLimit()
-    response = requests.request("POST", COMPANY_SEARCH_URL, headers=headers, data=payload)
+    # make request for all existing companies in db and filter results to get set of domain names only
+    response = requests.get(COMPANIES_GET_URL, headers=headers, params=params)
     responseData = response.json()
+    existing_companies_in_db = set([company['properties']['domain'] for company in responseData['results']])
 
-    # check "total" matches
-    if responseData["total"] == 0:
-        return False
-    else:
+# given company domain, checks if it already exists within database to prevent duplicates
+def companyExists(companyDomain):
+    if companyDomain in existing_companies_in_db:
         return True
+    else:
+        return False
 
+# main function for file; makes 
 def callCompaniesAPI(contactsFilename):
+    # retrieve all existing companies within db
+    getCompanies()
+
     # flow company info into json format
     with open(contactsFilename, newline='') as contactsFile:
         # variables to keep track of batches
-        companies = set()
+        requested_companies = set()
         companies_batch = list()
         total_companies_pushed = 0
 
         # iterate through csv file and add companies that don't already exist, either within local companies list or hubspot databse into batch request
         for row in csv.DictReader(contactsFile):
             # check if company already exists within larger file set, then check if it already exists within hubspot database
-            if row["company domain"] not in companies and not companyExists(row["company domain"]):
-                companies.add(row["company domain"])
+            if row["company domain"] not in requested_companies and not companyExists(row["company domain"]):
+                requested_companies.add(row["company domain"])
                 companies_batch.append({"properties": {"domain": row["company domain"]}})
 
                 # push batch if size is at limit of 100
@@ -82,4 +86,4 @@ def callCompaniesAPI(contactsFilename):
             except ApiException as e:
                 print("Exception when calling batch_api->create: %s\n" % e)
 
-        print(f"\n{total_companies_pushed} total companies pushed successfully.\n")
+        print(f"{total_companies_pushed} total companies pushed successfully.\n")
