@@ -45,11 +45,12 @@ def companyExists(companyDomain):
 # main function for file; makes 
 def callCompaniesAPI(contactsFilename):
     # retrieve all existing companies within db and assign to global variable set
+    print("Retrieving existing companies from database...\n")
     global EXISTING_COMPANIES_IN_DB
     EXISTING_COMPANIES_IN_DB = getCompanies()
-    print(EXISTING_COMPANIES_IN_DB)
 
     # flow company info into json format
+    print("Flowing in potential new companies...\n")
     with open(contactsFilename, newline='') as contactsFile:
         # variables to keep track of batches
         requested_companies = set()
@@ -90,6 +91,4 @@ def callCompaniesAPI(contactsFilename):
             except ApiException as e:
                 print("Exception when calling batch_api->create: %s\n" % e)
 
-        print(f"{total_companies_pushed} total companies pushed successfully.\n")
-
-        return total_companies_pushed
+        print(f"{total_companies_pushed} total companies pushed.\n")

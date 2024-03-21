@@ -9,9 +9,8 @@
 
 import sys
 import time
-from companies_api import callCompaniesAPI
+from companies_api import callCompaniesAPI, getCompanies
 from contacts_api import callContactsAPI
-from contacts_api import getContacts
 
 def main():
     print("\nStarting program...\n")
