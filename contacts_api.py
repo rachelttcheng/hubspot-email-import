@@ -18,17 +18,25 @@ client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
 # request database for info on all existing contacts
 def getContacts():
-    global EXISTING_CONTACTS_IN_DB
     params =  {"properties": ["email"]}
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + ACCESS_TOKEN
     }
 
-    # make request for all existing companies in db and filter results to get set of domain names only
+    # make request for all existing contacts in db and filter results to get set with all contact emails
     response = requests.get(CONTACTS_GET_URL, headers=headers, params=params)
     responseData = response.json()
-    EXISTING_CONTACTS_IN_DB = {contact['properties']['email'] for contact in responseData['results']}
+    all_results = {contact['properties']['email'] for contact in responseData['results']}
+
+    # account for result pagination, get all results
+    while ("paging" in responseData):
+        response = requests.get(responseData['paging']['next']['link'], headers=headers, params=params)
+        responseData = response.json()
+        all_results.update({contact['properties']['email'] for contact in responseData['results']})
+    
+    return all_results
+
 
 # given a company domain (unique identifier) returns object id within hubspot database
 def getAssociatedCompanyID(companyDomain):
@@ -46,12 +54,12 @@ def contactAlreadyExists(contactEmail):
 
 def callContactsAPI(contactsFilename):
     # get all existing contacts from database and flow into global variable
-    getContacts()
+    global EXISTING_CONTACTS_IN_DB
+    EXISTING_CONTACTS_IN_DB = getContacts()
 
     # get all companies within database, including their id; should include newly created companies
     global COMPANIES_IN_DB
-    responseData = getCompanies()
-    COMPANIES_IN_DB = {company['properties']['domain']: company['id'] for company in responseData['results']}
+    COMPANIES_IN_DB = getCompanies()
 
     # flow csv data into nested json format
     with open(contactsFilename, newline='') as contactsFile:

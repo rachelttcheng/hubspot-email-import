@@ -10,7 +10,7 @@ from get_token import fetchToken
 
 ACCESS_TOKEN = fetchToken()
 COMPANIES_GET_URL = "https://api.hubapi.com/crm/v3/objects/companies"
-EXISTING_COMPANIES_IN_DB = set()
+EXISTING_COMPANIES_IN_DB = dict()
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
@@ -22,13 +22,22 @@ def getCompanies():
         'Authorization': 'Bearer ' + ACCESS_TOKEN
     }
 
-    # make request for all existing companies in db and filter results to get set of domain names only
+    # make request for all existing companies in db and filter results to get dict with {company domain: company id} key value pairs
     response = requests.get(COMPANIES_GET_URL, headers=headers, params=params)
-    return response.json()
+    responseData = response.json()
+    all_results = {company['properties']['domain']: company['id'] for company in responseData['results']}
+
+    # account for result pagination, get all results
+    while ("paging" in responseData):
+        response = requests.get(responseData['paging']['next']['link'], headers=headers, params=params)
+        responseData = response.json()
+        all_results.update({company['properties']['domain']: company['id'] for company in responseData['results']})
+
+    return all_results
 
 # given company domain, checks if it already exists within database to prevent duplicates
 def companyExists(companyDomain):
-    if companyDomain in EXISTING_COMPANIES_IN_DB:
+    if companyDomain in EXISTING_COMPANIES_IN_DB.keys():
         return True
     else:
         return False
@@ -37,8 +46,8 @@ def companyExists(companyDomain):
 def callCompaniesAPI(contactsFilename):
     # retrieve all existing companies within db and assign to global variable set
     global EXISTING_COMPANIES_IN_DB
-    responseData = getCompanies()
-    EXISTING_COMPANIES_IN_DB = {company['properties']['domain'] for company in responseData['results']}
+    EXISTING_COMPANIES_IN_DB = getCompanies()
+    print(EXISTING_COMPANIES_IN_DB)
 
     # flow company info into json format
     with open(contactsFilename, newline='') as contactsFile:
@@ -82,3 +91,5 @@ def callCompaniesAPI(contactsFilename):
                 print("Exception when calling batch_api->create: %s\n" % e)
 
         print(f"{total_companies_pushed} total companies pushed successfully.\n")
+
+        return total_companies_pushed
