@@ -11,6 +11,7 @@ import sys
 import time
 from companies_api import callCompaniesAPI
 from contacts_api import callContactsAPI
+from contacts_api import getContacts
 
 def main():
     print("\nStarting program...\n")
@@ -22,18 +23,18 @@ def main():
 
     contactsFilename = sys.argv[1]
 
-    # api call to create companies
-    print("Starting companies API call...\n")
-    callCompaniesAPI(contactsFilename)
+    # # api call to create companies
+    # print("Starting companies API call...\n")
+    # callCompaniesAPI(contactsFilename)
 
-    # wait between api calls so that when contacts are created, ensure their companies already exist in the db
-    print("Waiting 10 seconds for companies to populate database before importing contacts...\n")
-    for i in range(10, 0, -1):
-        print(i)
-        time.sleep(1)
+    # # wait between api calls so that when contacts are created, ensure their companies already exist in the db
+    # print("Waiting 10 seconds for companies to populate database before importing contacts...\n")
+    # for i in range(10, 0, -1):
+    #     print(i)
+    #     time.sleep(1)
 
-    # api call to create contacts
-    print("Starting contacts API call...\n")
+    # # api call to create contacts
+    # print("Starting contacts API call...\n")
     callContactsAPI(contactsFilename)
 
 

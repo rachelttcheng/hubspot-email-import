@@ -1,80 +1,70 @@
 # import contacts (after companies), limited to batch sizes of 100
 # all contacts need to be in JSON format, associated to company object
 
-# run on command line as such:
-# % python3 contacts-api.py <contacts filename/path>
-# e.g.
-# % python3 email-api.py ./data/sample-contacts.csv
-
 import hubspot
 import csv
 import requests
-import json
-from ratelimiter import checkLimit
 from pprint import pprint
 from hubspot.crm.contacts import BatchInputSimplePublicObjectInputForCreate, ApiException
 from get_token import fetchToken
+from companies_api import getCompanies
 
 ACCESS_TOKEN = fetchToken()
-COMPANY_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/companies/search"
-CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
+CONTACTS_GET_URL = "https://api.hubapi.com/crm/v3/objects/contacts"
+EXISTING_CONTACTS_IN_DB = set()
+COMPANIES_IN_DB = dict()
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
-# given a company domain (unique identifier), makes request to hubspot api and returns object id within hubspot database
+# request database for info on all existing contacts
+def getContacts():
+    global EXISTING_CONTACTS_IN_DB
+    params =  {"properties": ["email"]}
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + ACCESS_TOKEN
+    }
+
+    # make request for all existing companies in db and filter results to get set of domain names only
+    response = requests.get(CONTACTS_GET_URL, headers=headers, params=params)
+    responseData = response.json()
+    EXISTING_CONTACTS_IN_DB = {contact['properties']['email'] for contact in responseData['results']}
+
+# given a company domain (unique identifier) returns object id within hubspot database
 def getAssociatedCompanyID(companyDomain):
-    # insert company domain into query and create relevant headers
-    payload = json.dumps({"query": companyDomain})
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ACCESS_TOKEN
-    }
-
-    # make request and get response data, with rate limiting
-    checkLimit()
-    response = requests.request("POST", COMPANY_SEARCH_URL, headers=headers, data=payload)
-    responseData = response.json()
-
-    # handle if no result; still TO DO in regards to if program should terminate or not
-    if responseData["total"] == 0:
+    if companyDomain not in COMPANIES_IN_DB.keys():
         print(f"Company {companyDomain} does not exist, cannot associate to contact\n")
+    
+    return COMPANIES_IN_DB[companyDomain]
 
-    # return company id
-    return responseData["results"][0]["id"]
-
-# given a contact email, makes request to hubspot api and ensures no duplication of existing contact (prevent conflict errors)
+# given a contact email, check if it exists in db already to ensure no duplication of existing contact (prevent conflict errors)
 def contactAlreadyExists(contactEmail):
-    # insert company domain into query and create relevant headers
-    payload = json.dumps({"query": contactEmail})
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ACCESS_TOKEN
-    }
-
-    # make request and get response data, with rate limiting
-    checkLimit()
-    response = requests.request("POST", CONTACTS_SEARCH_URL, headers=headers, data=payload)
-    responseData = response.json()
-
-    # check if any matches exist and return accordingly
-    if responseData["total"] == 0:
-        return False
-    else:
+    if contactEmail in EXISTING_CONTACTS_IN_DB:
         return True
+    else:
+        return False
 
 def callContactsAPI(contactsFilename):
+    # get all existing contacts from database and flow into global variable
+    getContacts()
+
+    # get all companies within database, including their id; should include newly created companies
+    global COMPANIES_IN_DB
+    responseData = getCompanies()
+    COMPANIES_IN_DB = {company['properties']['domain']: company['id'] for company in responseData['results']}
+
     # flow csv data into nested json format
     with open(contactsFilename, newline='') as contactsFile:
         # variables to keep track of locally seen contacts, and current batch
-        contacts = set()
+        requested_contacts = set()
         contacts_batch = list()
         total_contacts_pushed = 0
 
         # iterate through contacts file and add unique contacts to batch request
         for row in csv.DictReader(contactsFile):
             # check if contact already exists within larger file set, then check if it already exists within hubspot database
-            if row["email"] not in contacts and not contactAlreadyExists(row["email"]):
-                contacts.add(row["email"])
+            if row["email"] not in requested_contacts and not contactAlreadyExists(row["email"]):
+                requested_contacts.add(row["email"])
                 contacts_batch.append({
                     "associations": [{
                         "types": [{

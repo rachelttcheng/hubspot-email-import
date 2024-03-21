@@ -1,11 +1,6 @@
 # create/update companies before contacts, in batches of 100 (size limit)
 # url = 'https://api.hubapi.com/crm/v3/objects/companies/batch/create'
 
-# run on command line as such:
-# % python3 companies-api.py <contacts filename/path>
-# e.g.
-# % python3 companies-api.py ./data/sample-contacts.csv
-
 import hubspot
 import csv
 import requests
@@ -15,13 +10,12 @@ from get_token import fetchToken
 
 ACCESS_TOKEN = fetchToken()
 COMPANIES_GET_URL = "https://api.hubapi.com/crm/v3/objects/companies"
+EXISTING_COMPANIES_IN_DB = set()
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
-existing_companies_in_db = set()
 
 # make api call to get list of existing companies
 def getCompanies():
-    global existing_companies_in_db
     params =  {"properties": ["domain"]}
     headers = {
         'Content-Type': 'application/json',
@@ -30,20 +24,21 @@ def getCompanies():
 
     # make request for all existing companies in db and filter results to get set of domain names only
     response = requests.get(COMPANIES_GET_URL, headers=headers, params=params)
-    responseData = response.json()
-    existing_companies_in_db = set([company['properties']['domain'] for company in responseData['results']])
+    return response.json()
 
 # given company domain, checks if it already exists within database to prevent duplicates
 def companyExists(companyDomain):
-    if companyDomain in existing_companies_in_db:
+    if companyDomain in EXISTING_COMPANIES_IN_DB:
         return True
     else:
         return False
 
 # main function for file; makes 
 def callCompaniesAPI(contactsFilename):
-    # retrieve all existing companies within db
-    getCompanies()
+    # retrieve all existing companies within db and assign to global variable set
+    global EXISTING_COMPANIES_IN_DB
+    responseData = getCompanies()
+    EXISTING_COMPANIES_IN_DB = {company['properties']['domain'] for company in responseData['results']}
 
     # flow company info into json format
     with open(contactsFilename, newline='') as contactsFile:
