@@ -114,6 +114,9 @@ def callEmailAPI(cleanedDataFilename):
                 except ApiException as e:
                     print("Exception when calling batch_api->create: %s\n" % e)
 
+                # reset batch
+                emails_batch = list()
+
 
     # push leftover/last batch if didn't hit batch limit of 100
     if len(emails_batch) > 0:
