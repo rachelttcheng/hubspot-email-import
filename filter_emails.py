@@ -74,10 +74,11 @@ def getNonDomainEmails(fromData, toData, ccData):
     if 'insidemaps' not in fromData:
         combinedData.add(fromData.rstrip())
 
-    toData = toData.split(";")
-    for address in toData:
-        if 'insidemaps' not in address:
-            combinedData.add(address.rstrip())
+    if not pd.isnull(toData):
+        toData = toData.split(";")
+        for address in toData:
+            if 'insidemaps' not in address:
+                combinedData.add(address.rstrip())
 
     if not pd.isnull(ccData):
         ccData = ccData.split(";")
