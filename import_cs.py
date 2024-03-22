@@ -9,7 +9,7 @@
 
 import sys
 import time
-from companies_api import callCompaniesAPI, getCompanies
+from companies_api import callCompaniesAPI
 from contacts_api import callContactsAPI
 
 def main():
