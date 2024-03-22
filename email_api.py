@@ -9,50 +9,41 @@
 import hubspot
 import csv
 import json
-import requests
-from ratelimiter import checkLimit
 from pprint import pprint
 from hubspot.crm.objects.emails import BatchInputSimplePublicObjectInputForCreate, ApiException
 from get_token import fetchToken
 from ast import literal_eval
+from contacts_api import getContacts
 
 ACCESS_TOKEN = fetchToken()
 CONTACTS_SEARCH_URL = "https://api.hubapi.com/crm/v3/objects/contacts/search"
+EXISTING_CONTACTS = dict()
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
-# given an email address (unique identifier), make request to hubspot api and get object id
+# given an email address (unique identifier), check against existing contacts fetched from api
 def getActivityOwnerID(emailAddress):
-    # create query using email and relevant headers
-    payload = json.dumps({
-        "query": emailAddress
-    })
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ACCESS_TOKEN
-    }
-
-    # make request
-    checkLimit()
-    response = requests.request("POST", CONTACTS_SEARCH_URL, headers=headers, data=payload)
-    responseData = response.json()
-
-    # if no id found, simply return email address
-    if responseData["total"] == 0:
+    # if no id found, return email address
+    if emailAddress not in EXISTING_CONTACTS.keys():
         return emailAddress
     
-    # else return found ID number of requested email
-    return responseData["results"][0]["id"]
+    # else return ID number of associated contact email
+    return EXISTING_CONTACTS[emailAddress]
 
 def callEmailAPI(cleanedDataFilename):
     # open a potential "error" file for if an activity-associated email DNE
     errorFilename = cleanedDataFilename.split('.')[0] + "-not-uploaded.csv"
 
+    # fetch all contacts and their ids from db
+    global EXISTING_CONTACTS
+    EXISTING_CONTACTS = getContacts()
+
     # flow csv data into nested json format
-    emails = []
     with open("./" + cleanedDataFilename, newline='') as emailsFile:
-        emails = list()
+        emails_batch = list()
         emailReader = csv.DictReader(emailsFile)
+        total_emails_pushed = 0
+        total_emails_not_pushed = 0
 
         # set up error file by adding "issues" field name
         errorFieldnames = ['issue']
@@ -70,6 +61,7 @@ def callEmailAPI(cleanedDataFilename):
                 # if no id number found for email within database, it DNE and should be written to error file
                 if not activityOwner.isnumeric():
                     row['issue'] = f"{activityOwner} not in contacts"
+                    total_emails_not_pushed += 1
                     errorWriter.writerow(row)
                     continue
                 
@@ -108,14 +100,31 @@ def callEmailAPI(cleanedDataFilename):
                 "associations": associations
             }
 
-            emails.append(emailInstance)
+            emails_batch.append(emailInstance)
 
-    # create email batch input object and attempt to call api
-    batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=emails)
+            # push batch if at batch size limit of 100
+            if len(emails_batch) == 100:
+                batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=emails_batch)
 
-    try:
-        api_response = client.crm.objects.emails.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
-        pprint(api_response)
-        print(f"\nEmails imported to database. Any emails not able to be imported due to contact not existing have been written to {errorFilename}\n")
-    except ApiException as e:
-        print("Exception when calling batch_api->create: %s\n" % e)
+                try:
+                    api_response = client.crm.objects.emails.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
+                    # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
+                    total_emails_pushed += len(api_response.results)
+                    print(f"Emails batch of size {len(api_response.results)} pushed successfully.\n")
+                except ApiException as e:
+                    print("Exception when calling batch_api->create: %s\n" % e)
+
+
+    # push leftover/last batch if didn't hit batch limit of 100
+    if len(emails_batch) > 0:
+        batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=emails_batch)
+
+        try:
+            api_response = client.crm.objects.emails.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
+            # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
+            total_emails_pushed += len(api_response.results)
+            print(f"Emails batch of size {len(api_response.results)} pushed successfully.\n")
+        except ApiException as e:
+            print("Exception when calling batch_api->create: %s\n" % e)
+    
+    print(f"{total_emails_pushed} emails imported to database.\n{total_emails_not_pushed} email instances were not able to be imported due to an associated contact not existing, and have been written to {errorFilename}\n")

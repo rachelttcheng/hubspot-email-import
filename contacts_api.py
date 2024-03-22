@@ -11,7 +11,7 @@ from companies_api import getCompanies
 
 ACCESS_TOKEN = fetchToken()
 CONTACTS_GET_URL = "https://api.hubapi.com/crm/v3/objects/contacts"
-EXISTING_CONTACTS_IN_DB = set()
+EXISTING_CONTACTS_IN_DB = dict()
 COMPANIES_IN_DB = dict()
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
@@ -27,13 +27,13 @@ def getContacts():
     # make request for all existing contacts in db and filter results to get set with all contact emails
     response = requests.get(CONTACTS_GET_URL, headers=headers, params=params)
     responseData = response.json()
-    all_results = {contact['properties']['email'] for contact in responseData['results']}
+    all_results = {contact['properties']['email']: contact['id'] for contact in responseData['results']}
 
     # account for result pagination, get all results
     while ("paging" in responseData):
         response = requests.get(responseData['paging']['next']['link'], headers=headers, params=params)
         responseData = response.json()
-        all_results.update({contact['properties']['email'] for contact in responseData['results']})
+        all_results.update({contact['properties']['email']: contact['id'] for contact in responseData['results']})
     
     return all_results
 
@@ -47,7 +47,7 @@ def getAssociatedCompanyID(companyDomain):
 # given a contact email, check if it exists in db already to ensure no duplication of existing contact (prevent conflict errors)
 def contactAlreadyExists(contactEmail):
     # be sure to account for case sensitivity
-    if contactEmail.lower() in EXISTING_CONTACTS_IN_DB:
+    if contactEmail.lower() in EXISTING_CONTACTS_IN_DB.keys():
         return True
     else:
         return False

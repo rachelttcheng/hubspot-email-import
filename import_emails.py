@@ -16,6 +16,8 @@ from filter_emails import cleanEmailData
 from email_api import callEmailAPI
 
 def main():
+    print("\nStarting program...\n")
+
     # get emails file from command line
     if len(sys.argv) < 2:   # ensure enough arguments are passed
         raise AssertionError("Not enough arguments specified")
@@ -23,6 +25,7 @@ def main():
     rawEmailFilename = sys.argv[1]
 
     # 1. convert emails from mbox to json using mbox-to-json package
+    print("Converting mbox file to csv...\n")
     subprocess.run(["mbox-to-json", rawEmailFilename, "-c"])
 
     # get name of outputted csv file for input to second step
@@ -32,15 +35,18 @@ def main():
 
     # 2. clean up email data
     # generate output file name, for input to third step
+    print("Cleaning csv email data...\n")
     cleanedDataFilename = csvEmailFilename.split('.')[0] + "-output.csv"
     cleanEmailData(csvEmailFilename, cleanedDataFilename)
 
-    print("\nEmail data cleaned, ready to be written to database...\n")
+    print("Email data cleaned, ready to be written to database...\n")
 
     # 3. api call to create emails
+    print("Starting email API call...\n")
     callEmailAPI(cleanedDataFilename)
 
     # delete extraneous intermediate files
+    print("Email API call done. Cleaning intermediate files...\n")
     os.remove(csvEmailFilename)
     os.remove(cleanedDataFilename)
 
