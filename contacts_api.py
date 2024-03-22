@@ -37,7 +37,6 @@ def getContacts():
     
     return all_results
 
-
 # given a company domain (unique identifier) returns object id within hubspot database
 def getAssociatedCompanyID(companyDomain):
     if companyDomain not in COMPANIES_IN_DB.keys():
@@ -47,7 +46,8 @@ def getAssociatedCompanyID(companyDomain):
 
 # given a contact email, check if it exists in db already to ensure no duplication of existing contact (prevent conflict errors)
 def contactAlreadyExists(contactEmail):
-    if contactEmail in EXISTING_CONTACTS_IN_DB:
+    # be sure to account for case sensitivity
+    if contactEmail.lower() in EXISTING_CONTACTS_IN_DB:
         return True
     else:
         return False

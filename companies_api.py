@@ -37,7 +37,8 @@ def getCompanies():
 
 # given company domain, checks if it already exists within database to prevent duplicates
 def companyExists(companyDomain):
-    if companyDomain in EXISTING_COMPANIES_IN_DB.keys():
+    # account for case sensitivity
+    if companyDomain.lower() in EXISTING_COMPANIES_IN_DB.keys():
         return True
     else:
         return False
