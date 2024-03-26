@@ -52,6 +52,19 @@ def contactAlreadyExists(contactEmail):
     else:
         return False
 
+# batch up according to api, and return batch size if successful
+def pushContactsBatch(contacts_batch):
+    batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=contacts_batch)
+
+    try:
+        api_response = client.crm.contacts.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
+        # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
+        print(f"Contacts batch of size {len(api_response.results)} pushed successfully.\n")
+        return len(api_response.results)
+    except ApiException as e:
+        print("Exception when calling batch_api->create: %s\n" % e)
+        return -1
+
 def callContactsAPI(contactsFilename):
     # get all existing contacts from database and flow into global variable
     print("Retrieving all existing contacts from database...\n")
@@ -95,31 +108,15 @@ def callContactsAPI(contactsFilename):
                     }
                 })
             
-                # push batch if at batch size limit of 100
+                # push batch if at batch size limit of 100, and update total count
                 if len(contacts_batch) == 100:
-                    batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=contacts_batch)
-
-                    try:
-                        api_response = client.crm.contacts.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
-                        total_contacts_pushed += len(api_response.results)
-                        # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
-                        print(f"Contacts batch of size {len(api_response.results)} pushed successfully.\n")
-                    except ApiException as e:
-                        print("Exception when calling batch_api->create: %s\n" % e)
+                    total_contacts_pushed += pushContactsBatch(contacts_batch)
 
                     # reset batch
                     contacts_batch = list()
         
         # make sure to push leftover/last batch if it didn't hit batch limit of 100
         if len(contacts_batch) > 0:
-            batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=contacts_batch)
-
-            try:
-                api_response = client.crm.contacts.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
-                total_contacts_pushed += len(api_response.results)
-                # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
-                print(f"Contacts batch of size {len(api_response.results)} pushed successfully.\n")
-            except ApiException as e:
-                print("Exception when calling batch_api->create: %s\n" % e)
+            total_contacts_pushed += pushContactsBatch(contacts_batch)
 
         print(f"{total_contacts_pushed} total contacts pushed.\n")
