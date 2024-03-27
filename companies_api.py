@@ -48,6 +48,14 @@ class HubSpotCompaniesAPI:
         else:
             return False
     
+    # # tbd on if necessary
+    # def get_company_id(self, company_domain):
+    #     if company_domain not in self.existing_db_companies.keys():
+    #         print(f"Company {company_domain} does not exist, cannot associate to contact\n")
+    #         return
+        
+    #     return self.existing_db_companies[company_domain]
+    
     # make batch object and call api
     def push_single_batch(self, batch):
         batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=batch)
@@ -68,6 +76,7 @@ class HubSpotCompaniesAPI:
 
         # flow company info into json format
         print("Flowing in potential new companies...\n")
+        self.size_of_last_push = 0
         with open(filename, newline='') as import_file:
             # variables to keep track of batches
             requested_companies = set()
