@@ -16,107 +16,97 @@ COMPANIES_IN_DB = dict()
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
-# request database for info on all existing contacts
-def getContacts():
-    params =  {"properties": ["email"]}
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ACCESS_TOKEN
-    }
-
-    # make request for all existing contacts in db and filter results to get set with all contact emails
-    response = requests.get(CONTACTS_GET_URL, headers=headers, params=params)
-    responseData = response.json()
-    all_results = {contact['properties']['email']: contact['id'] for contact in responseData['results']}
-
-    # account for result pagination, get all results
-    while ("paging" in responseData):
-        response = requests.get(responseData['paging']['next']['link'], headers=headers, params=params)
-        responseData = response.json()
-        all_results.update({contact['properties']['email']: contact['id'] for contact in responseData['results']})
+class HubSpotContactsAPI:
+    def __init__(self, access_token):
+        self.access_token = access_token
+        self.url = "https://api.hubapi.com/crm/v3/objects/contacts"
+        self.existing_db_contacts = dict()
+        self.size_of_last_push = 0
     
-    return all_results
+    # request db for info on all existing contacts
+    def get_existing_contacts(self):
+        params = {"properties": ['email']}
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + self.access_token
+        }
 
-# given a company domain (unique identifier) returns object id within hubspot database
-def getAssociatedCompanyID(companyDomain):
-    if companyDomain not in COMPANIES_IN_DB.keys():
-        print(f"Company {companyDomain} does not exist, cannot associate to contact\n")
+        # make request for all existing contacts in db and filter results to get set with all contact emails
+        response = requests.get(self.url, headers=headers, params=params)
+        response_data = response.json()
+        self.existing_db_contacts = {contact['properties']['email']: contact['id'] for contact in response_data['results']}
+
+        # account for result pagination, get all results
+        while ("paging" in response_data):
+            response = requests.get(response_data['paging']['next']['link'], headers=headers, params=params)
+            response_data = response.json()
+            self.existing_db_contacts.update({contact['properties']['email']: contact['id'] for contact in response_data['results']})
+
+    # given a contact email, check if it exists in db already
+    def contact_exists_in_db(self, email):
+        # be sure to account for case sensitivity
+        if email.lower() in self.existing_db_contacts.keys():
+            return True
+        else:
+            return False
     
-    return COMPANIES_IN_DB[companyDomain]
+    # make batch object and call api
+    def push_single_batch(self, batch):
+        batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=contacts_batch)
 
-# given a contact email, check if it exists in db already to ensure no duplication of existing contact (prevent conflict errors)
-def contactAlreadyExists(contactEmail):
-    # be sure to account for case sensitivity
-    if contactEmail.lower() in EXISTING_CONTACTS_IN_DB.keys():
-        return True
-    else:
-        return False
+        try:
+            api_response = client.crm.contacts.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
+            self.size_of_last_push += len(api_response.results)
+            # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
+            print(f"Contacts batch of size {len(api_response.results)} pushed successfully.\n")
+        except ApiException as e:
+            print("Exception when calling batch_api->create: %s\n" % e)
+    
+    # main function for contacts import from file
+    def import_companies_file(self, filename, existing_db_companies):
+        # retrieve all existing contacts in db
+        print("Retrieving all existing contacts from database...\n")
+        self.get_existing_contacts()
 
-# batch up according to api, and return batch size if successful
-def pushContactsBatch(contacts_batch):
-    batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=contacts_batch)
+        # flow csv data into json format
+        print("Flowing in potential new contacts...\n")
+        self.size_of_last_push = 0
+        with open(filename, newline='') as import_file:
+            # variables to keep track of batches
+            requested_contacts = set()
+            current_batch = list()
 
-    try:
-        api_response = client.crm.contacts.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
-        # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
-        print(f"Contacts batch of size {len(api_response.results)} pushed successfully.\n")
-        return len(api_response.results)
-    except ApiException as e:
-        print("Exception when calling batch_api->create: %s\n" % e)
-        return -1
-
-def callContactsAPI(contactsFilename):
-    # get all existing contacts from database and flow into global variable
-    print("Retrieving all existing contacts from database...\n")
-    global EXISTING_CONTACTS_IN_DB
-    EXISTING_CONTACTS_IN_DB = getContacts()
-
-    # get all companies within database, including their id; should include newly created companies
-    print("Retrieving all companies and their IDs from database...\n")
-    global COMPANIES_IN_DB
-    COMPANIES_IN_DB = getCompanies()
-
-    # flow csv data into nested json format
-    print("Flowing in potential new contacts...\n")
-    with open(contactsFilename, newline='') as contactsFile:
-        # variables to keep track of locally seen contacts, and current batch
-        requested_contacts = set()
-        contacts_batch = list()
-        total_contacts_pushed = 0
-
-        # iterate through contacts file and add unique contacts to batch request
-        for row in csv.DictReader(contactsFile):
-            # check if contact already exists within larger file set, then check if it already exists within hubspot database
-            if row["email"] not in requested_contacts and not contactAlreadyExists(row["email"]):
-                requested_contacts.add(row["email"])
-                contacts_batch.append({
-                    "associations": [{
-                        "types": [{
-                            "associationCategory": "HUBSPOT_DEFINED",
-                            "associationTypeId": 1
+            # iterate through contacts file and add unique contacts to batch req
+            for row in csv.DictReader(import_file):
+                # check if contact has already been seen and/or it already exists in db
+                if row['email'] not in requested_contacts and not self.contact_exists_in_db(row['email']):
+                    requested_contacts.add(row['email'])
+                    current_batch.append({
+                        "associations": [{
+                            "types": [{
+                                "associationCategory": "HUBSPOT_DEFINED",
+                                "associationTypeId": 1
+                            }],
+                            "to": {
+                                "id": existing_db_companies(row['company domain'])
+                            }
                         }],
-                        "to": {
-                            "id": getAssociatedCompanyID(row["company domain"])
+                        "properties": {
+                            "email": row["email"],
+                            "firstname": row["first name"],
+                            "lastname": row["last name"],
+                            "company": row["company"],
+                            "website": row["company domain"]
                         }
-                    }],
-                    "properties": {
-                        "email": row["email"],
-                        "firstname": row["first name"],
-                        "lastname": row["last name"],
-                        "company": row["company"],
-                        "website": row["company domain"]
-                    }
-                })
+                    })
+
+                    # push batch if at batch size limit of 100 and reset batch
+                    if len(current_batch) == 100:
+                        self.push_single_batch(current_batch)
+                        current_batch = list()
             
-                # push batch if at batch size limit of 100, and update total count
-                if len(contacts_batch) == 100:
-                    total_contacts_pushed += pushContactsBatch(contacts_batch)
+            # make sure to push leftover/last batch if it didn't hit batch limit of 100
+            if len(current_batch) > 0:
+                self.push_single_batch(current_batch)
 
-                    # reset batch
-                    contacts_batch = list()
-        
-        # make sure to push leftover/last batch if it didn't hit batch limit of 100
-        if len(contacts_batch) > 0:
-            total_contacts_pushed += pushContactsBatch(contacts_batch)
-
-        print(f"{total_contacts_pushed} total contacts pushed.\n")
+        print(f"{self.size_of_last_push} total contacts pushed.\n")
