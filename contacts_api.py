@@ -52,7 +52,7 @@ class HubSpotContactsAPI:
     
     # make batch object and call api
     def push_single_batch(self, batch):
-        batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=contacts_batch)
+        batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=batch)
 
         try:
             api_response = client.crm.contacts.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
