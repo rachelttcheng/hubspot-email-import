@@ -14,82 +14,79 @@ EXISTING_COMPANIES_IN_DB = dict()
 
 client = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
-# make api call to get list of existing companies
-def getCompanies():
-    params =  {"properties": ["domain"]}
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ACCESS_TOKEN
-    }
+class HubSpotCompaniesAPI:
+    def __init__(self, access_token):
+        self.access_token = access_token
+        self.url = "https://api.hubapi.com/crm/v3/objects/companies"
+        self.existing_db_companies = dict()
+        self.size_of_last_push = 0
 
-    # make request for all existing companies in db and filter results to get dict with {company domain: company id} key value pairs
-    response = requests.get(COMPANIES_GET_URL, headers=headers, params=params)
-    responseData = response.json()
-    all_results = {company['properties']['domain']: company['id'] for company in responseData['results']}
+    # make api call to get list of existing companies and update self.existing_db_companies
+    def get_existing_companies(self):
+        params = {"properties": ["domain"]}
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + self.access_token
+        }
 
-    # account for result pagination, get all results
-    while ("paging" in responseData):
-        response = requests.get(responseData['paging']['next']['link'], headers=headers, params=params)
-        responseData = response.json()
-        all_results.update({company['properties']['domain']: company['id'] for company in responseData['results']})
+        # make request for all existing companies in db and filter results to get dict with {company domain: company id} key value pairs
+        response = requests.get(self.url, headers=headers, params=params)
+        response_data = response.json()
+        self.existing_db_companies = {company['properties']['domain']: company['id'] for company in response_data['results']}
 
-    return all_results
+        # account for result pagination, get all results
+        while ('paging' in response_data):
+            response = requests.get(response_data['paging']['next']['link'], headers=headers, params=params)
+            response_data = response.json()
+            self.existing_db_companies.update({company['properties']['domain']: company['id'] for company in response_data['results']})
+        
+    # given company domain, checks if it already exists within database to prevent duplicates
+    def company_exists_in_db(self, company_domain):
+        # account for case sensitivity
+        if company_domain.lower() in self.existing_db_companies.keys():
+            return True
+        else:
+            return False
+    
+    # make batch object and call api
+    def push_single_batch(self, batch):
+        batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=batch)
 
-# given company domain, checks if it already exists within database to prevent duplicates
-def companyExists(companyDomain):
-    # account for case sensitivity
-    if companyDomain.lower() in EXISTING_COMPANIES_IN_DB.keys():
-        return True
-    else:
-        return False
+        try:
+            api_response = client.crm.companies.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
+            self.size_of_last_push += len(api_response.results)
+            # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
+            print(f"Company batch of size {len(api_response.results)} pushed successfully.")
+        except ApiException as e:
+            print("Exception when calling batch_api->create: %s\n" % e)
+    
+    # main function for company import from file
+    def import_companies_file(self, filename):
+        # retrieve all existing companies in db
+        print("Retrieving existing companies from database...\n")
+        self.get_existing_companies()
 
-# main function for file; makes 
-def callCompaniesAPI(contactsFilename):
-    # retrieve all existing companies within db and assign to global variable set
-    print("Retrieving existing companies from database...\n")
-    global EXISTING_COMPANIES_IN_DB
-    EXISTING_COMPANIES_IN_DB = getCompanies()
+        # flow company info into json format
+        print("Flowing in potential new companies...\n")
+        with open(filename, newline='') as import_file:
+            # variables to keep track of batches
+            requested_companies = set()
+            current_batch = list()
 
-    # flow company info into json format
-    print("Flowing in potential new companies...\n")
-    with open(contactsFilename, newline='') as contactsFile:
-        # variables to keep track of batches
-        requested_companies = set()
-        companies_batch = list()
-        total_companies_pushed = 0
+            # iterate through csv file and add companies that haven't already been seen and/or already exist in db
+            for row in csv.DictReader(import_file):
+                # check if company already seen; then check if exists within larger db
+                if row['company domain'] not in requested_companies and not self.company_exists_in_db(row['company domain']):
+                    requested_companies.add(row['company domain'])
+                    current_batch.append({"properties": {"domain": row['company domain']}})
 
-        # iterate through csv file and add companies that don't already exist, either within local companies list or hubspot databse into batch request
-        for row in csv.DictReader(contactsFile):
-            # check if company already exists within larger file set, then check if it already exists within hubspot database
-            if row["company domain"] not in requested_companies and not companyExists(row["company domain"]):
-                requested_companies.add(row["company domain"])
-                companies_batch.append({"properties": {"domain": row["company domain"]}})
-
-                # push batch if size is at limit of 100
-                if len(companies_batch) == 100:
-                    batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=companies_batch)
-
-                    try:
-                        api_response = client.crm.companies.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
-                        total_companies_pushed += len(api_response.results)
-                        # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
-                        print(f"Company batch of size {len(api_response.results)} pushed successfully.")
-                    except ApiException as e:
-                        print("Exception when calling batch_api->create: %s\n" % e)
-
-                    # reset batch
-                    companies_batch = list()
-
-        # make sure to push leftover/last batch if it didn't hit batch limit of 100
-        if len(companies_batch) > 0:
-            batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=companies_batch)
-
-            try:
-                api_response = client.crm.companies.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
-                total_companies_pushed += len(api_response.results)
-                # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
-                print(f"Company batch of size {len(api_response.results)} pushed successfully.\n")
-            except ApiException as e:
-                print("Exception when calling batch_api->create: %s\n" % e)
-
-        print(f"{total_companies_pushed} total companies pushed.\n")
+                # push batch if size is at limit of 100, then reset it
+                if len(current_batch) == 100:
+                    self.push_single_batch(current_batch)
+                    current_batch = list()
+        
+            # push leftover/last batch if necessary
+            if len(current_batch) > 0:
+                self.push_single_batch(current_batch)
+        
+        print(f"{self.size_of_last_push} total companies pushed.\n")
