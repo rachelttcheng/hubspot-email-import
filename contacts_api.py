@@ -7,7 +7,6 @@ import requests
 from pprint import pprint
 from hubspot.crm.contacts import BatchInputSimplePublicObjectInputForCreate, ApiException
 from get_token import fetchToken
-from companies_api import getCompanies
 
 ACCESS_TOKEN = fetchToken()
 CONTACTS_GET_URL = "https://api.hubapi.com/crm/v3/objects/contacts"
