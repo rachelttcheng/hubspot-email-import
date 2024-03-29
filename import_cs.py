@@ -8,9 +8,14 @@
 # note: contacts file should be contained in same folder as program
 
 import sys
+import hubspot
 import time
-from companies_api import callCompaniesAPI
-from contacts_api import callContactsAPI
+from companies_api import HubSpotCompaniesAPI
+from contacts_api import HubSpotContactsAPI
+from get_token import fetchToken
+
+ACCESS_TOKEN = fetchToken()
+CLIENT = hubspot.Client.create(access_token=ACCESS_TOKEN)
 
 def main():
     print("\nStarting program...\n")
@@ -24,7 +29,8 @@ def main():
 
     # api call to create companies
     print("Starting companies API call...\n")
-    callCompaniesAPI(contactsFilename)
+    CompaniesAPI = HubSpotCompaniesAPI(ACCESS_TOKEN, CLIENT)
+    CompaniesAPI.import_companies_file(contactsFilename)
 
     # wait between api calls so that when contacts are created, ensure their companies already exist in the db
     print("Waiting 10 seconds for companies to populate database before importing contacts...\n")
@@ -34,7 +40,8 @@ def main():
 
     # api call to create contacts
     print("Starting contacts API call...\n")
-    callContactsAPI(contactsFilename)
+    ContactsAPI = HubSpotContactsAPI(ACCESS_TOKEN, CLIENT)
+    ContactsAPI.import_companies_file(contactsFilename)
 
 
 if __name__ == "__main__":

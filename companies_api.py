@@ -12,11 +12,10 @@ ACCESS_TOKEN = fetchToken()
 COMPANIES_GET_URL = "https://api.hubapi.com/crm/v3/objects/companies"
 EXISTING_COMPANIES_IN_DB = dict()
 
-client = hubspot.Client.create(access_token=ACCESS_TOKEN)
-
 class HubSpotCompaniesAPI:
-    def __init__(self, access_token):
+    def __init__(self, access_token, client):
         self.access_token = access_token
+        self.client = client
         self.url = "https://api.hubapi.com/crm/v3/objects/companies"
         self.existing_db_companies = dict()
         self.size_of_last_push = 0
@@ -61,7 +60,7 @@ class HubSpotCompaniesAPI:
         batch_input_simple_public_object_input_for_create = BatchInputSimplePublicObjectInputForCreate(inputs=batch)
 
         try:
-            api_response = client.crm.companies.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
+            api_response = self.client.crm.companies.batch_api.create(batch_input_simple_public_object_input_for_create=batch_input_simple_public_object_input_for_create)
             self.size_of_last_push += len(api_response.results)
             # pprint(api_response) # -- UNCOMMENT IF WANT MORE DETAILED RESPONSE INFO
             print(f"Company batch of size {len(api_response.results)} pushed successfully.")
