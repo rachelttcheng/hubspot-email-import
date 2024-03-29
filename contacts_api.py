@@ -10,8 +10,6 @@ from get_token import fetchToken
 
 ACCESS_TOKEN = fetchToken()
 CONTACTS_GET_URL = "https://api.hubapi.com/crm/v3/objects/contacts"
-EXISTING_CONTACTS_IN_DB = dict()
-COMPANIES_IN_DB = dict()
 
 class HubSpotContactsAPI:
     def __init__(self, access_token, client):
@@ -61,7 +59,7 @@ class HubSpotContactsAPI:
             print("Exception when calling batch_api->create: %s\n" % e)
     
     # main function for contacts import from file
-    def import_companies_file(self, filename, existing_db_companies):
+    def import_contacts_file(self, filename, existing_db_companies):
         # retrieve all existing contacts in db
         print("Retrieving all existing contacts from database...\n")
         self.get_existing_contacts()

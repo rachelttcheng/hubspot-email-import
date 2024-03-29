@@ -38,10 +38,13 @@ def main():
         print(i)
         time.sleep(1)
 
+    # re-populate existing companies in db, with updated db info
+    CompaniesAPI.get_existing_companies()
+
     # api call to create contacts
     print("Starting contacts API call...\n")
     ContactsAPI = HubSpotContactsAPI(ACCESS_TOKEN, CLIENT)
-    ContactsAPI.import_companies_file(contactsFilename)
+    ContactsAPI.import_contacts_file(contactsFilename, CompaniesAPI.existing_db_companies)
 
 
 if __name__ == "__main__":
